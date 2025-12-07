@@ -1,0 +1,56 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Person extends Model
+{
+    protected $table = 'persons';
+   protected $fillable = [
+    'user_id',
+    'firstname',
+    'lastname',
+    'birth_date',
+    'birth_city',
+    'gender',
+    'handicap',
+    'phone',
+    'address',
+    'wilaya',
+    'study_level',
+    'education',
+    'favorite_activity',
+    'photo',
+    'birth_certificate',
+    'document_birth',
+    'document_photo',
+    'parent_firstname',
+    'parent_lastname',
+    'parent_phone',
+    'parent_relation',
+    'age_category_id',
+    'club_id',
+    'entreprise_id'
+];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function club()
+    {
+        return $this->belongsTo(Club::class);
+    }
+
+    public function ageCategory()
+    {
+        return $this->belongsTo(AgeCategory::class);
+    }
+
+    public function dossier()
+{
+    return $this->hasOne(\App\Models\Dossier::class, 'person_id');
+}
+}

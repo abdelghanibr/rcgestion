@@ -1,0 +1,86 @@
+body {
+    font-family: "Cairo", sans-serif;
+    background: #F5F7FA;
+}
+
+/* NAVBAR */
+.navbar-main {
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+}
+
+.nav-link {
+    font-weight: 600;
+    color: #0D2235 !important;
+}
+
+.nav-link:hover {
+    color: #2C8C45 !important;
+}
+
+/* HERO */
+.hero {
+    padding: 60px 15px 80px;
+    background: radial-gradient(circle at top left, #2C8C45 0, #0D2235 60%);
+    color: white;
+}
+
+.hero-title {
+    font-size: 2.4rem;
+    font-weight: 900;
+}
+
+.hero-btn {
+    border-radius: 25px;
+    padding: 10px 22px;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.hero-card {
+    background: rgba(255,255,255,0.12);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+
+.hero-logo {
+    max-width: 120px;
+}
+
+/* SECTIONS */
+.section-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #0D2235;
+    margin: 40px 0 20px;
+    text-align: center;
+}
+
+.card-modern {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    text-align: center;
+    transition: .25s;
+}
+
+.card-modern:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.15);
+}
+
+.card-modern i {
+    font-size: 2rem;
+    color: #2C8C45;
+}
+
+/* FOOTER */
+.footer {
+    background: #0D2235;
+    color: #e5e7eb;
+    padding: 20px;
+    margin-top: 40px;
+    text-align: center;
+}

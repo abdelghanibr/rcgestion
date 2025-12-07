@@ -1,0 +1,108 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Activity;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+
+class ActivityController extends Controller
+{
+    /**
+     * عرض جميع الأنشطة
+     */
+    public function index()
+    {
+        $activities = Activity::all();
+        return view('activities.index', compact('activities'));
+    }
+
+    /**
+     * صفحة إضافة نشاط
+     */
+  public function create()
+{
+    $activities = Activity::latest()->get();
+    return view('activities.create', compact('activities'));
+}
+
+    /**
+     * حفظ النشاط الجديد
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'icon'  => 'required|image|mimes:jpg,jpeg,png|max:4096',
+            'description' => 'nullable|string',
+            'category' => 'nullable|string',
+            'color' => 'nullable|string'
+        ]);
+
+        // المسارات من .env
+        $storagePath = rtrim(env('PUBLIC_STORAGE_PATH'), '/');
+        $storageUrl  = rtrim(env('PUBLIC_STORAGE_URL'), '/');
+
+        $iconUrl = null;
+
+        if ($request->hasFile('icon')) {
+            $file = $request->file('icon');
+            $iconName = time() . '_' . $file->getClientOriginalName();
+            $file->move($storagePath . '/photos', $iconName);
+
+            $iconUrl = $storageUrl . '/photos/' . $iconName;
+        }
+
+        Activity::create([
+            'title' => $request->title,
+            'category' => $request->category,
+            'description' => $request->description,
+            'color' => $request->color,
+            'icon' => $iconUrl,
+        ]);
+
+        return redirect()
+            ->route('activities.index')
+            ->with('success', 'تمت إضافة النشاط بنجاح 🎉');
+    }
+
+    /**
+     * عرض المركبات الخاصة بنشاط معين
+     */
+    public function complexes($id)
+    {
+        $activity = Activity::with('complexes')->findOrFail($id);
+        return view('activities.complexes', compact('activity'));
+    }
+
+    /**
+     * تسجيل المستخدم في نشاط
+     */
+    public function register($id)
+    {
+        DB::table('activity_user')->insert([
+            'user_id' => Auth::id(),
+            'activity_id' => $id,
+            'status' => 'en_attente',
+            'payment_status' => 'non_paye',
+            'created_at' => now(),
+        ]);
+
+        return back()->with('success', 'تم تسجيلك بنجاح وهو قيد الدراسة');
+    }
+
+    /**
+     * عرض أنشطة المستخدم
+     */
+    public function myActivities()
+    {
+        $my = DB::table('activity_user')
+            ->join('activities', 'activities.id', '=', 'activity_user.activity_id')
+            ->where('activity_user.user_id', Auth::id())
+            ->select('activities.*', 'activity_user.status', 'activity_user.payment_status')
+            ->get();
+
+        return view('activities.my', compact('my'));
+    }
+}
