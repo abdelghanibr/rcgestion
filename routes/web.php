@@ -270,11 +270,18 @@ Route::delete('/activities/{id}', [ActivityController::class, 'destroy'])->name(
   Route::middleware('auth')->group(function () {
     Route::get('/activities', [App\Http\Controllers\ActivityController::class, 'index'])
         ->name('activities.index');
-});
 
-Route::get('/activities/{id}/complexes',
+        Route::get('/activities/{id}/complexes',
     [App\Http\Controllers\ActivityController::class, 'complexes'])
     ->name('activities.complexes');
+
+    Route::get('/reservations/availability/{id}', 
+    [ReservationController::class, 'availability'])
+    ->name('reservations.availability');
+
+});
+
+
 
     // صفحة أنشطتي
   

@@ -61,7 +61,7 @@ class DashboardController extends Controller
         if ($user->type === 'entreprise') {
 
             $enterpriseOwner = $user->id;
- $dossier =  Club::where('user_id', $user->id)->first();
+        $dossier =  Club::where('user_id', $user->id)->first();
             $playersCount = Person::where('user_id', $enterpriseOwner)
                                 ->where('education', 'لاعب')
                                 ->count();
@@ -81,7 +81,7 @@ class DashboardController extends Controller
             ));
         }
 
-/*pucje ghani
+/*pucje dsd
         /* ---------------------------------
         | 📌 Dashboard الشخص
         --------------------------------- */

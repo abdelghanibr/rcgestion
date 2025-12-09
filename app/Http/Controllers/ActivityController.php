@@ -72,6 +72,7 @@ class ActivityController extends Controller
      */
     public function complexes($id)
     {
+        session(['activity_id' => $id]);
         $activity = Activity::with('complexes')->findOrFail($id);
         return view('activities.complexes', compact('activity'));
     }
