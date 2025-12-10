@@ -65,8 +65,70 @@
 
                     <ul class="dropdown-menu">
 
-                        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-user ms-1"></i> الملف الشخصي</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-gauge ms-1"></i> لوحة التحكم</a></li>
+                        @php
+    $user = Auth::user();
+    $profileRoute = '#';
+
+    if($user){
+        switch ($user->type) {
+            case 'admin':
+                $profileRoute = route('admin.profile.edit');
+                break;
+
+            case 'club':
+                $profileRoute = route('club.profile.edit');
+                break;
+
+            case 'person':
+                $profileRoute = route('person.profile.edit');
+                break;
+
+            case 'entreprise':
+            case 'company':
+                $profileRoute = route('entreprise.profile.edit');
+                break;
+        }
+    }
+@endphp
+
+<li>
+    <a class="dropdown-item" href="{{ $profileRoute }}">
+        <i class="fa-solid fa-user ms-1"></i> الملف الشخصي
+    </a>
+</li>
+
+                      @php
+    $user = Auth::user();
+    $dashboardRoute = '#';
+
+    if($user){
+        switch ($user->type) {
+            case 'admin':
+                $dashboardRoute = route('admin.dashboard');
+                break;
+
+            case 'club':
+                $dashboardRoute = route('club.dashboard');
+                break;
+
+            case 'person':
+                $dashboardRoute = route('person.dashboard');
+                break;
+
+            case 'company':
+            case 'company': // في حال التسمية company
+                $dashboardRoute = route('entreprise.dashboard');
+                break;
+        }
+    }
+@endphp
+
+<li>
+    <a class="dropdown-item" href="{{ $dashboardRoute }}">
+        <i class="fa-solid fa-gauge ms-1"></i> لوحة التحكم
+    </a>
+</li>
+
 
                         <li><hr class="dropdown-divider"></li>
 

@@ -129,7 +129,10 @@ Route::post('/password/reset', [ResetPasswordController::class, 'reset'])
 Route::middleware(['auth','person'])->group(function () {
     Route::get('/person/dashboard', [DashboardController::class, 'index'])->name('person.dashboard');
 
+Route::get('/person/profile/edit', [RegisterController::class, 'edit'])->name('person.profile.edit');
 
+ Route::put('/person/profile/update', [RegisterController::class, 'update'])
+        ->name('person.profile.update');
 });
 
 // ⭐ Dashboard Club
@@ -151,6 +154,11 @@ Route::get('/club/persons/edit/{id}', [PersonController::class, 'edit'])
     Route::delete('/club/persons/delete/{id}', [PersonController::class, 'destroy'])
         ->name('club.persons.delete');
 
+        Route::get('/club/profile/edit', [RegisterController::class, 'edit'])->name('club.profile.edit');
+
+            Route::put('/club/profile/update', [RegisterController::class, 'update'])
+        ->name('club.profile.update');
+
 });
 
 // ⭐ Dashboard Entreprise
@@ -171,12 +179,26 @@ Route::middleware(['auth','entreprise'])->group(function () {
     // 📌 حذف
     Route::delete('/entreprise/persons/delete/{id}', [PersonController::class, 'destroy'])
         ->name('entreprise.persons.delete');     
+
+        Route::get('/entreprise/profile/edit', [RegisterController::class, 'edit'])->name('entreprise.profile.edit');
+            Route::put('/entreprise/profile/update', [RegisterController::class, 'update'])
+        ->name('entreprise.profile.update');
 });
 
 
 // ⭐ Dashboard Admin
 
 Route::middleware(['auth','admin'])->group(function () {
+
+
+Route::get('/admin/profile/edit', [RegisterController::class, 'edit'] )->name('admin.profile.edit');
+
+  Route::put('/admin/profile/update', [RegisterController::class, 'update'])->name('admin.profile.update');
+
+
+
+
+
     Route::get('admins', [AdminController::class, 'adminsIndex'])->name('admins.index');
     Route::get('admins/create', [AdminController::class, 'adminsCreate'])->name('admins.create');
     Route::post('admins/store', [AdminController::class, 'adminsStore'])->name('admins.store');
