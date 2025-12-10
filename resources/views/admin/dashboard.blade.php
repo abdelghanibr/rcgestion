@@ -1,7 +1,6 @@
 @extends('layouts.app')
 
 @section('content')
-  <!-- 👑 Header Admin -->
 <style>
     body { font-family: "Cairo", sans-serif !important; }
 
@@ -23,6 +22,7 @@
         transition: .25s;
         cursor: pointer;
         box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+        min-height: 220px;
     }
 
     .dash-card:hover {
@@ -33,16 +33,8 @@
 
     .dash-icon {
         font-size: 45px;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
         color: #0a4f88;
-    }
-
-    .dash-btn {
-        background: #9d1421; !important;
-        color: #fff !important;
-        font-weight: bold;
-        border-radius: 10px;
-        padding: 6px 14px;
     }
 
     .count-box {
@@ -58,80 +50,91 @@
 
 <div class="container py-4" style="direction: rtl; text-align:right;">
 
-    <!-- 👑 Header Admin -->
     <div class="dash-header mb-4">
         <h3 class="fw-bold">🎯 أهلاً بك مدير النظام {{ Auth::user()->name }}!</h3>
-        <p class="mb-0">يمكنك هنا إدارة الملفات، النوادي وعضويات المشتركين بسهولة</p>
+        <p class="mb-0">يمكنك هنا إدارة الملفات والأنشطة والمشتركين بسهولة</p>
     </div>
 
     <div class="row g-4">
 
-        <!-- 📂 إدارة ملفات المشتركين -->
-        <div class="col-md-4">
+        <!-- 📂 ملفات المشتركين -->
+        <div class="col-md-3">
             <a href="{{ route('admin.dossiers.index') }}" class="text-decoration-none text-dark">
                 <div class="dash-card">
                     <div class="dash-icon">🗂️</div>
-                    <h5 class="fw-bold">ملفات المشتركين</h5>
-                    <p class="text-muted">قبول – رفض – متابعة الطلبات</p>
+                    <h6 class="fw-bold">ملفات المشتركين</h6>
                     <div class="count-box">الإجمالي: {{ $dossiersCount }}</div>
                 </div>
             </a>
         </div>
 
-        <!-- 🏊‍♂️ إدارة النوادي -->
-        <div class="col-md-4">
+        <!-- 🏊 النوادي الرياضية -->
+        <div class="col-md-3">
             <a href="{{ route('admin.clubs.index') }}" class="text-decoration-none text-dark">
                 <div class="dash-card">
                     <div class="dash-icon">🏊‍♂️</div>
-                    <h5 class="fw-bold">النوادي الرياضية</h5>
-                    <p class="text-muted">تنظيم واعتماد النوادي</p>
+                    <h6 class="fw-bold">النوادي الرياضية</h6>
                     <div class="count-box">عدد النوادي: {{ $clubsCount }}</div>
                 </div>
             </a>
         </div>
 
-        <!-- 🧑‍🤝‍🧑 إدارة الأفراد -->
-        <div class="col-md-4">
+        <!-- 👑 المسؤولون -->
+        <div class="col-md-3">
+            <a href="{{ route('admins.index') }}" class="text-decoration-none text-dark">
+                <div class="dash-card">
+                    <div class="dash-icon">👑</div>
+                    <h6 class="fw-bold">المسؤولون</h6>
+                    <div class="count-box">عدد المسؤولين: {{ $adminsCount ?? 0 }}</div>
+                </div>
+            </a>
+        </div>
+
+        <!-- 👥 الأفراد -->
+        <div class="col-md-3">
             <a href="#" class="text-decoration-none text-dark">
                 <div class="dash-card">
                     <div class="dash-icon">👥</div>
-                    <h5 class="fw-bold">الأفراد</h5>
-                    <p class="text-muted">متابعة ملفات الأعضاء</p>
+                    <h6 class="fw-bold">الأفراد</h6>
                     <div class="count-box">عدد الأفراد: {{ $personsCount }}</div>
                 </div>
             </a>
         </div>
 
-    <!-- 👑 المسؤولون -->
-<div class="col-md-4">
-    <div class="dash-card" style="background: #fff7ed; border: 1px solid #ffd8a8;">
-        <div class="dash-icon mb-2">
-            <i class="fa-solid fa-user-shield" style="font-size: 32px; color:#d9480f"></i>
-        </div>
-
-        <h5 class="fw-bold" style="color:#d9480f;">المسؤولون 👑</h5>
-        <p class="text-muted">تحكم كامل في حسابات الإدارة</p>
-
-        <div class="count-box mb-3">
-            <span style="font-size: 15px;">عدد المسؤولين :</span>
-            <span class="badge bg-warning text-dark">{{ $adminsCount ?? 0 }}</span>
-        </div>
-
-        <div class="d-flex justify-content-center gap-2">
-            <a href="{{ route('admins.index') }}" class="btn btn-warning btn-sm fw-bold">
-                👥 عرض المسؤولين
-            </a>
-
-            <a href="{{ route('admins.create') }}" class="btn btn-success btn-sm fw-bold">
-                ➕ إضافة مسؤول
+        <!-- 🏋️ الأنشطة -->
+        <div class="col-md-3">
+            <a href="{{ route('admin.activities.index') }}" class="text-decoration-none text-dark">
+                <div class="dash-card">
+                    <div class="dash-icon">🏋️‍♂️</div>
+                    <h6 class="fw-bold">الأنشطة الرياضية</h6>
+                    <div class="count-box">عدد الأنشطة: {{ \App\Models\Activity::count() }}</div>
+                </div>
             </a>
         </div>
+
+        <!-- 🏟 المركبات -->
+        <div class="col-md-3">
+            <a href="{{ route('admin.complexes.index') }}" class="text-decoration-none text-dark">
+                <div class="dash-card">
+                    <div class="dash-icon">🏟️</div>
+                    <h6 class="fw-bold">المركبات الرياضية</h6>
+                    <div class="count-box">عدد المركبات: {{ \App\Models\Complex::count() }}</div>
+                </div>
+            </a>
+        </div>
+
+        <!-- 💰 التسعير -->
+        <div class="col-md-3">
+            <a href="{{ route('admin.pricing_plans.index') }}" class="text-decoration-none text-dark">
+                <div class="dash-card">
+                    <div class="dash-icon">💵</div>
+                    <h6 class="fw-bold">خطط التسعير</h6>
+                    <div class="count-box">عدد الخطط: {{ \App\Models\PricingPlan::count() }}</div>
+                </div>
+            </a>
+        </div>
+
     </div>
-</div>
-
-
-    </div>
-
 </div>
 
 @endsection

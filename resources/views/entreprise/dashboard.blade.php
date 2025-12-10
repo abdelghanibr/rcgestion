@@ -46,18 +46,18 @@
 
     <a href="{{ route('profile.new') }}" class="btn btn-main btn-sm mt-2">
     إدارة اللاعبين
-</a>
+    </a>
            
     
             </div>
         </div>
 
         <!-- 🔸 نفس البطاقات الأخرى بدون تغيير -->
-        <div class="col-md-4">
+           <div class="col-md-4">
             <div class="dash-card">
-                <h5>📅 الحجوزات</h5>
-                <p class="text-muted">متابعة طلبات الحجز وإدارتها</p>
-                <a href="#" class="btn btn-main btn-sm">حجوزات المؤسسة</a>
+                <h5>📅 النشاطات</h5>
+                <p class="text-muted">المشاركة في مختلف النشاطات</p>
+                <a href="{{ route('activities.index') }}" class="btn btn-main btn-sm">أستكشف النشاطات المتاحة</a>
             </div>
         </div>
 

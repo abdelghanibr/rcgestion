@@ -25,7 +25,7 @@ class PersonController extends Controller
 
             $view = 'club.persons.index';
         }
-        elseif ($user->type === 'entreprise') {
+        elseif ($user->type === 'company') {
             $persons = Person::where('user_id', $user->id)
                                 ->where('education', $type)
                                 ->orderByDesc('id')
@@ -58,7 +58,7 @@ class PersonController extends Controller
 
         if ($user->type === 'club') {
             return view('club.persons.edit', compact('person'));
-        } elseif ($user->type === 'entreprise') {
+        } elseif ($user->type === 'company') {
             return view('entreprise.persons.edit', compact('person'));
         }
 
@@ -100,7 +100,7 @@ class PersonController extends Controller
     // 👈 تحديد مسار العودة حسب نوع المستخدم
     if ($user->type === 'club') {
         $route = 'club.persons.index';
-    } elseif ($user->type === 'entreprise') {
+    } elseif ($user->type === 'company') {
         $route = 'entreprise.persons.index';
     } else {
         $route = 'dashboard';

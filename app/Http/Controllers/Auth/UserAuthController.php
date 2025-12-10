@@ -42,7 +42,7 @@ class UserAuthController extends Controller
             return match ($user->type) {
                 'admin' => redirect()->route('admin.dashboard'),
                 'club'  => redirect()->route('club.dashboard'),
-                'entreprise' => redirect()->route('entreprise.dashboard'),
+                'company' => redirect()->route('entreprise.dashboard'),
                 default => redirect()->route('person.dashboard'),
             };
         }

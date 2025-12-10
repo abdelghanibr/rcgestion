@@ -136,7 +136,7 @@ $pricingPlans = PricingPlan::where('activity_id', $complexActivity->activity_id)
     $seasons   = Season::all();
     $dossier = Club::where('user_id', $user->id)->first();
     // تحقق من الدوسيي
-    if ($user->type === 'entreprise' || $user->type === 'club') {
+    if ($user->type === 'company' || $user->type === 'club') {
 
         
         
@@ -178,7 +178,7 @@ $pricingPlans = PricingPlan::where('activity_id', $complexActivity->activity_id)
     $startOfWeek = now()->startOfWeek(); 
     $endOfWeek = now()->endOfWeek();
 // 📌 حجوزات المستخدم نفسه لعرضها في التقويم باللون الأزرق
-$userReservations = Reservation::where('user_id', $user->id)
+    $userReservations = Reservation::where('user_id', $user->id)
     ->where('complex_activity_id', $complexActivity->id)
    // ->whereBetween('start_date', [ $seasons ->date_debut, $seasons->date_fin])
     ->get()
@@ -323,7 +323,7 @@ public function store(Request $request)
     return match ($user->type) {
         'admin' => redirect()->route('admin.dashboard'),
         'club'  => redirect()->route('club.dashboard'),
-        'entreprise' => redirect()->route('entreprise.dashboard'),
+        'company' => redirect()->route('entreprise.dashboard'),
         default => redirect()->route('person.dashboard'),
     }; with('success', '✔ تم تسجيل الحجز بنجاح وسيتم مراجعته من الإدارة.');
 }

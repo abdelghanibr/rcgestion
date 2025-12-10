@@ -12,8 +12,8 @@ class Complex extends Model
         'adresse',
         'phone',
         'capacite',
-        'prix',
-        'description'
+     
+        
     ];
 
     /**

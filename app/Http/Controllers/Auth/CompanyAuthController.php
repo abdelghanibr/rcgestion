@@ -42,7 +42,7 @@ class CompanyAuthController extends Controller
                 'name'     => $request->name,
                 'email'    => $request->email,
                 'password' => Hash::make($request->password),
-                'type'     => 'entreprise'
+                'type'     => 'company'
             ]);
 
             // مسارات التخزين
@@ -104,7 +104,7 @@ class CompanyAuthController extends Controller
         if (Auth::attempt([
             'email' => $request->email,
             'password' => $request->password,
-            'type' => 'entreprise'
+            'type' => 'company'
         ])) {
             return redirect()->route('entreprise.dashboard');
         }

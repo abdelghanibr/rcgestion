@@ -104,7 +104,11 @@
         @endif
 
         <button type="submit" class="btn-login">دخول</button>
-
+<div class="text-center mt-2">
+    <a href="{{ route('password.request') }}" class="fw-bold" style="color:#0d47a1;">
+        نسيت كلمة المرور؟
+    </a>
+</div>
     </form>
 
 </div>

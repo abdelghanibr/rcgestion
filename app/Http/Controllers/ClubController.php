@@ -15,12 +15,14 @@ class ClubController extends Controller
     }
 
     public function approve($id)
-    {
+    { 
         $club = Club::findOrFail($id);
+
+//dd($club) ;
         $club->update([
             'etat' => 'approved',
             'validated_by' => Auth::id(),
-            'validated_at' => now(),
+           'validated_at' => now(),
         ]);
 
         return back()->with('success','تم قبول النادي ✔');

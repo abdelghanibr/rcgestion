@@ -51,7 +51,7 @@
             <a href="{{ route('person.dashboard') }}" class="btn-main">الذهاب إلى لوحة التحكم 👤</a>
         @elseif($type == 'club')
             <a href="{{ route('club.dashboard') }}" class="btn-main">الذهاب إلى لوحة تحكم النادي ⚽</a>
-        @elseif($type == 'entreprise')
+        @elseif($type == 'company')
             <a href="{{ route('entreprise.dashboard') }}" class="btn-main">إدارة حساب الشركة 🏢</a>
         @elseif($type == 'admin')
             <a href="{{ route('admin.dashboard') }}" class="btn-main">لوحة التحكم الإدارية 🛠️</a>

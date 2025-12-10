@@ -22,7 +22,7 @@ public function showStep($step)
     $user = Auth::user();
     
     // 🔹 إذا كا مستخدم club أو entreprise
-    if ($user->type === 'club' || $user->type === 'entreprise') {
+    if ($user->type === 'club' || $user->type === 'company') {
 
         if(session()->has('edit_person_id')) {
             $person = Person::find(session('edit_person_id'));
@@ -73,7 +73,7 @@ public function showStep($step)
                 $age = Carbon::parse($request->birth_date)->age;
                 $ageCat = $age <= 12 ? 1 : ($age <= 17 ? 2 : ($age <= 59 ? 3 : 4));
 
-                if ($type === 'club' || $type === 'entreprise') {
+                if ($type === 'club' || $type === 'company') {
                     Person::create(array_merge($validated, [
                         'user_id' => $user->id,
                         'age_category_id' => $ageCat
@@ -173,7 +173,7 @@ public function showStep($step)
                 $route = match ($user->type) {
                     'admin' => 'admin.dashboard',
                     'club' => 'club.dashboard',
-                    'entreprise' => 'entreprise.dashboard',
+                    'company' => 'entreprise.dashboard',
                     default => 'person.dashboard'
                 };
 

@@ -35,7 +35,7 @@
             <div class="dash-card">
                 <h5>⭐ النشاطات المتاحة</h5>
                 <p class="text-muted">تصفح وقم بالحجز</p>
-                <a href="#" class="btn btn-main btn-sm">الذهاب للأنشطة</a>
+                <a href="{{ route('activities.index') }}" class="btn btn-main btn-sm">أستكشف النشاطات المتاحة</a>
             </div>
         </div>
 

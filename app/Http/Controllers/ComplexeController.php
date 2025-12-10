@@ -12,9 +12,22 @@ class ComplexeController extends Controller
      * عرض قائمة المركبات + صفحة الإدارة
      */
     public function index()
+ 
+     
+{
+    $user = Auth::user();
+    $complexes = DB::table('complexes')->orderBy('id', 'DESC')->get();
+
+    if ($user->type === 'admin') {
+        return view('admin.complexes.index', compact('complexes'));
+    }
+
+    return view('complexes.index', compact('complexes'));
+}
+
+    public function create()
     {
-        $complexes = DB::table('complexes')->orderBy('id', 'DESC')->get();
-        return view('complexes.index', compact('complexes'));
+        return view('admin.complexes.create');
     }
 
     /**
@@ -42,6 +55,12 @@ class ComplexeController extends Controller
 
         return back()->with('success', '✔ تم إضافة المركب بنجاح');
     }
+public function edit($id)
+{
+    $complex = Complex::findOrFail($id);
+
+    return view('admin.complexes.edit', compact('complex'));
+}
 
     /**
      * تعديل مركب

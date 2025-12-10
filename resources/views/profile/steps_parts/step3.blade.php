@@ -18,7 +18,7 @@
 
         <!-- الولاية -->
         
-@if ($user->type == 'club' || $user->type == 'entreprise')
+@if ($user->type == 'club' || $user->type == 'company')
     <div class="mb-3">
         <label class="form-label fw-bold">الفئة داخل النادي / المؤسسة</label>
         <select name="education" class="form-select" required>

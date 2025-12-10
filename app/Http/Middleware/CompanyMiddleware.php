@@ -9,7 +9,7 @@ class CompanyMiddleware
 {
     public function handle($request, Closure $next)
     {
-        if (Auth::check() && Auth::user()->type === 'entreprise') {
+        if (Auth::check() && Auth::user()->type === 'company') {
             return $next($request);
         }
 

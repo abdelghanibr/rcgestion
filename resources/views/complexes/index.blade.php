@@ -21,7 +21,7 @@
                 <th>الاسم</th>
                 <th>الوصف</th>
                 <th>السعة</th>
-                <th>السعر (دج)</th>
+            
                 <th>النوع</th>
                 <th>إجراءات</th>
             </tr>
@@ -32,7 +32,7 @@
                 <td>{{ $c->nom }}</td>
                 <td>{{ $c->description ?? '—' }}</td>
                 <td>{{ $c->capacite }}</td>
-                <td>{{ number_format($c->prix,2) }}</td>
+             
                 <td>{{ $c->type ?? '—' }}</td>
                 <td>
 
@@ -41,7 +41,7 @@
                         data-nom="{{ $c->nom }}"
                         data-description="{{ $c->description }}"
                         data-type="{{ $c->type }}"
-                        data-prix="{{ $c->prix }}"
+                    
                         data-capacite="{{ $c->capacite }}"
                         data-bs-toggle="modal"
                         data-bs-target="#editModal">

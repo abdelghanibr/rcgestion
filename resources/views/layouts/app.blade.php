@@ -71,13 +71,24 @@
                         <li><hr class="dropdown-divider"></li>
 
                         <li>
-                           <form method="POST" action="{{ route(Auth::user()->type.'.logout') }}">
-                                @csrf
-                                <button class="dropdown-item text-danger">
-                                    <i class="fa-solid fa-right-from-bracket ms-1"></i>
-                                    تسجيل الخروج
-                                </button>
-                            </form>
+                          @php
+    $logoutRoute = match(Auth::user()->type) {
+        'admin' => 'admin.logout',
+        'club' => 'club.logout',
+        'company' => 'entreprise.logout',
+        'person' => 'person.logout',
+        default => 'logout', // fallback
+    };
+@endphp
+
+<form method="POST" action="{{ route($logoutRoute) }}">
+    @csrf
+    <button class="dropdown-item text-danger">
+        <i class="fa-solid fa-right-from-bracket ms-1"></i>
+        تسجيل الخروج
+    </button>
+</form>
+
                         </li>
 
                     </ul>

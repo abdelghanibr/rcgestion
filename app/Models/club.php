@@ -16,7 +16,7 @@ class Club extends Model
         'status',
         'validatio',
         'date_validation',
-        'validated_by'
+        'validated_by','etat'  ,'validated_at' 
 
 
  

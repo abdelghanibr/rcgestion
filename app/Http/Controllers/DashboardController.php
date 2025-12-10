@@ -31,7 +31,7 @@ class DashboardController extends Controller
 
             $clubOwner = $user->id;
 
-            $dossier =  Club::where('user_id', $user->id)->first();
+            $dossier =  Club::where('user_id', $user->id)->first(); //verifir le dossier du club 
 
             $playersCount = Person::where('user_id', $clubOwner)
                                 ->where('education', 'لاعب')
@@ -58,10 +58,11 @@ class DashboardController extends Controller
         /* ---------------------------------
         | 📌 Dashboard المؤسسة
         --------------------------------- */
-        if ($user->type === 'entreprise') {
+      //  dd($user->type ); 
+        if ($user->type === 'company') {
 
             $enterpriseOwner = $user->id;
-        $dossier =  Club::where('user_id', $user->id)->first();
+           $dossier =  Club::where('user_id', $user->id)->first();
             $playersCount = Person::where('user_id', $enterpriseOwner)
                                 ->where('education', 'لاعب')
                                 ->count();

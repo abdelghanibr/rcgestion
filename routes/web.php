@@ -12,6 +12,10 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ComplexeController;
+use App\Http\Controllers\Admin\ComplexController;
+use App\Http\Controllers\Admin\ActivitysController;
+use App\Http\Controllers\Admin\PricingsPlanController ;
+
 
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\ClubAuthController;
@@ -23,6 +27,8 @@ use App\Http\Controllers\ClubController;
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\HomeController;
+
+ use App\Http\Controllers\PricingPlanController ;
 /*
 |--------------------------------------------------------------------------
 | PAGE D'ACCUEIL PUBLIQUE (SANS AUTH)
@@ -150,7 +156,9 @@ Route::get('/club/persons/edit/{id}', [PersonController::class, 'edit'])
 // ⭐ Dashboard Entreprise
 Route::middleware(['auth','entreprise'])->group(function () {
     Route::get('/entreprise/dashboard', [DashboardController::class, 'index'])->name('entreprise.dashboard');
-       Route::get('/entreprise/persons/{type}', [PersonController::class, 'index'])
+    
+    
+    Route::get('/entreprise/persons/{type}', [PersonController::class, 'index'])
         ->name('entreprise.persons.index');
 
     Route::get('/entreprise/persons/edit/{id}', [PersonController::class, 'edit'])
@@ -167,6 +175,7 @@ Route::middleware(['auth','entreprise'])->group(function () {
 
 
 // ⭐ Dashboard Admin
+
 Route::middleware(['auth','admin'])->group(function () {
     Route::get('admins', [AdminController::class, 'adminsIndex'])->name('admins.index');
     Route::get('admins/create', [AdminController::class, 'adminsCreate'])->name('admins.create');
@@ -193,6 +202,57 @@ Route::middleware(['auth','admin'])->group(function () {
 
     Route::get('/admin/clubs/{id}/reject', [ClubController::class, 'reject'])
         ->name('admin.clubs.reject');
+
+//activite et complex et pricing pla 
+
+// gestion des activités
+    Route::get('/admin/activities', [ActivitysController::class, 'index'])->name('admin.activities.index');
+    Route::get('/admin/activities/create', [ActivitysController::class, 'create'])->name('admin.activities.create');
+    Route::post('/admin/activities', [ActivitysController::class, 'store'])->name('admin.activities.store');
+    Route::get('/admin/activities/{id}/edit', [ActivitysController::class, 'edit'])->name('admin.activities.edit');
+    Route::put('/admin/activities/{id}', [ActivitysController::class, 'update'])->name('admin.activities.update');
+    Route::delete('/admin/activities/{id}', [ActivitysController::class, 'destroy'])->name('admin.activities.destroy');
+
+
+
+
+
+
+
+
+
+
+
+
+// gestion des complexes
+Route::get('/admin/complexes', [ComplexeController::class, 'index'])
+        ->name('admin.complexes.index');
+    Route::get('/admin/complexes/create', [ComplexController::class, 'create'])
+        ->name('admin.complexes.create');
+
+
+    Route::post('/admin/complexes', [ComplexController::class, 'store'])
+        ->name('admin.complexes.store');
+
+    // تعديل مركب
+    Route::get('/admin/complexes/{id}/edit', [ComplexController::class, 'edit'])
+        ->name('admin.complexes.edit');
+
+    Route::put('/admin/complexes/{id}', [ComplexController::class, 'update'])
+        ->name('admin.complexes.update');
+
+    // حذف مركب
+    Route::delete('/admin/complexes/{id}', [ComplexController::class, 'destroy'])
+        ->name('admin.complexes.destroy');
+
+// tableau de bord admin
+
+    Route::get('/admin/pricing', [PricingsPlanController::class, 'index'])->name('admin.pricing_plans.index');
+    Route::get('/admin/pricing/create', [PricingsPlanController::class, 'create'])->name('admin.pricing_plans.create');
+    Route::post('/admin/pricing', [PricingsPlanController::class, 'store'])->name('admin.pricing_plans.store');
+    Route::get('/admin/pricing/{id}/edit', [PricingsPlanController::class, 'edit'])->name('admin.pricing_plans.edit');
+    Route::put('/admin/pricing/{id}', [PricingsPlanController::class, 'update'])->name('admin.pricing_plans.update');
+    Route::delete('/admin/pricing/{id}', [PricingsPlanController::class, 'destroy'])->name('admin.pricing_plans.destroy');
 
 
  Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])
