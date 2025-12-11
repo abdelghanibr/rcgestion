@@ -48,6 +48,11 @@ class Person extends Model
     {
         return $this->belongsTo(AgeCategory::class);
     }
+    public function age()
+{
+    return $this->hasOne(Person::class, 'user_id', 'id');
+}
+
 
     public function dossier()
 {

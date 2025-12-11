@@ -134,13 +134,25 @@
             </a>
         </div>
 
-       <div class="col-md-3">
+      <div class="col-md-3">
     <a href="{{ route('admin.capacities.index') }}" class="text-decoration-none text-dark">
         <div class="dash-card">
-            <div class="dash-icon">👥</div>
-            <h6 class="fw-bold">الطاقة الاستيعابية</h6>
+            <div class="dash-icon">🏫</div>
+            <h6 class="fw-bold">إسناد الأنشطة للمؤسسات</h6>
             <div class="count-box">
-                عدد الطاقات: {{ \App\Models\ComplexActivity::count() }}
+                {{ \App\Models\complexactivity::count() }}
+            </div>
+        </div>
+    </a>
+</div>
+
+<div class="col-md-3">
+    <a href="{{ route('admin.schedules.index') }}" class="text-decoration-none text-dark">
+        <div class="dash-card">
+            <div class="dash-icon">📅</div>
+            <h6 class="fw-bold">الجداول الزمنية</h6>
+            <div class="count-box">
+                {{ \App\Models\Schedule::count() }}
             </div>
         </div>
     </a>

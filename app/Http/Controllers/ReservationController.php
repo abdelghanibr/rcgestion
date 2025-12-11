@@ -98,15 +98,24 @@ public function availability($complexActivityId)
      $age = Person :: where( 'user_id' , $user->id) -> first();              
 
                    
-$pricingPlans = PricingPlan::where('activity_id', $complexActivity->activity_id) // id de planing_pricing selon l'activité
+$pricingPlans = PricingPlan::where('activity_id', $complexActivity->activity_id) // اختيار الخطط حسب النشاط
     ->where(function($q) use ($user) {
-        if ($user->type == 'person') {//si le user est person
-            $q->where('type_client', 'person')// dans la table pricing_plan pour prson 
-              ->where('age_category_id', $user->age->age_category_id ); // et age_category_id
-                      } else {
+
+        // إذا كان المستخدم "شخص"
+        if ($user->type == 'person') {
+
+            $q->where('type_client', 'person')                 // نوع الزبون شخص
+              ->where('age_category_id', optional($user->age)->age_category_id); // الفئة العمرية
+
+        } else {
+
+            // إذا كان نادي / مؤسسة
             $q->where('type_client', 'club');
+
         }
     })
+   
+
     ->where('active', 1)//plan actif
     ->whereDate('valid_from', '<=', now())// date de validité
     //->orWhereNull('valid_to')

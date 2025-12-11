@@ -23,7 +23,7 @@
                     <th>#</th>
                     <th>المركّب</th>
                     <th>النشاط</th>
-                    <th>الموسم</th>
+                  
                     <th>السعة</th>
                     <th style="min-width: 130px">إجراءات</th>
                 </tr>
@@ -35,7 +35,7 @@
                     <td>{{ $loop->iteration }}</td>
                     <td>{{ $cap->complex->nom ?? '-' }}</td>
                     <td>{{ $cap->activity->title ?? '-' }}</td>
-                    <td>{{ $cap->season->name ?? '-' }}</td>
+              
                     <td>{{ $cap->capacity }}</td>
 
                     <td>

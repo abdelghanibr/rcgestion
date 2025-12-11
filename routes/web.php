@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\ComplexController;
 use App\Http\Controllers\Admin\ActivitysController;
 use App\Http\Controllers\Admin\PricingsPlanController ;
 use App\Http\Controllers\Admin\capacityController ;
+use App\Http\Controllers\Admin\ScheduleController ;
 
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\ClubAuthController;
@@ -239,6 +240,23 @@ Route::get('/admin/profile/edit', [RegisterController::class, 'edit'] )->name('a
     Route::delete('/admin/activities/{id}', [ActivitysController::class, 'destroy'])->name('admin.activities.destroy');
 
 
+// gestion des horaires (schedules)
+Route::get('/admin/schedules', [ScheduleController::class, 'index'])->name('admin.schedules.index');
+Route::get('/admin/schedules/create', [ScheduleController::class, 'create'])->name('admin.schedules.create');
+Route::post('/admin/schedules', [ScheduleController::class, 'store'])->name('admin.schedules.store');
+Route::get('/admin/schedules/{id}/edit', [ScheduleController::class, 'edit'])->name('admin.schedules.edit');
+Route::put('/admin/schedules/{id}', [ScheduleController::class, 'update'])->name('admin.schedules.update');
+Route::delete('/admin/schedules/{id}', [ScheduleController::class, 'destroy'])->name('admin.schedules.destroy');
+
+Route::get('/admin/get-complex-activity', function (Request $request) {
+    $ca = \App\Models\ComplexActivity::where('complex_id', $request->complex_id)
+        ->where('activity_id', $request->activity_id)
+        ->first();
+
+    return response()->json([
+        'id' => $ca ? $ca->id : null
+    ]);
+})->name('admin.getComplexActivity');
 
 // gestion des capacités
 // Capacities Management

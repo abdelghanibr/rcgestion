@@ -126,56 +126,79 @@ public function showStep($step)
 
             case 4:
 
-                $request->validate([
-                    'photo' => 'required|image|max:2048',
-                    'birth_certificate' => 'required|mimes:pdf,jpg,png|max:4096'
-                ]);
 
-                if (app()->environment('local')) {
-                    $storagePath = storage_path('app/public');
-                    $storageUrl = '/storage';
-                } else {
-                    $storagePath = rtrim(env('PUBLIC_STORAGE_PATH'), '/');
-                    $storageUrl = rtrim(env('PUBLIC_STORAGE_URL'), '/');
-                }
+    // استرجاع الشخص المرتبط بالمستخدم
+    $person = Person::where('user_id', $user->id)->orderByDesc('id')->first();
 
-                $person = Person::where('user_id', $user->id)->orderByDesc('id')->first();
-                $attachments = [];
+    // --- قواعد التحقق الديناميكية ---
+    $rules = [
+        'photo' => ($person && $person->photo ? 'nullable' : 'required') . '|image|mimes:jpg,jpeg,png|max:2048',
+        'birth_certificate' => ($person && $person->birth_certificate ? 'nullable' : 'required') . '|mimes:pdf|max:4096',
+    ];
 
-                if ($request->hasFile('photo')) {
-                    $photoName = time().'_'.$request->file('photo')->getClientOriginalName();
-                    $request->file('photo')->move($storagePath.'/photos', $photoName);
-                    $attachments['photo'] = $storageUrl.'/photos/'.$photoName;
-                    $person->photo = $attachments['photo'];
-                }
+    $request->validate($rules);
 
-                if ($request->hasFile('birth_certificate')) {
-                    $fileName = time().'_'.$request->file('birth_certificate')->getClientOriginalName();
-                    $request->file('birth_certificate')->move($storagePath.'/documents', $fileName);
-                    $attachments['birth_certificate'] = $storageUrl.'/documents/'.$fileName;
-                    $person->birth_certificate = $attachments['birth_certificate'];
-                }
+    // --- تحديد مسار التخزين ---
+    if (app()->environment('local')) {
+        $storagePath = storage_path('app/public');
+        $storageUrl  = '/storage';
+    } else {
+        $storagePath = rtrim(env('PUBLIC_STORAGE_PATH'), '/');
+        $storageUrl  = rtrim(env('PUBLIC_STORAGE_URL'), '/');
+    }
 
-                $person->save();
+    $attachments = [];
 
-                if (!empty($attachments)) {
-                    Dossier::updateOrCreate(
-                        ['person_id' => $person->id],
-                        [
-                            'etat' =>'pending',
-                            'attachments' => json_encode($attachments),
-                            'owner_type' => $type,
-                            'note_admin' => '📌 تم رفع الوثائق وجاري التحقق منها'
-                        ]
-                    );
-                }
+    // --- رفع الصورة الشخصية ---
+    if ($request->hasFile('photo')) {
+        $photoName = time() . '_' . $request->file('photo')->getClientOriginalName();
+        $request->file('photo')->move($storagePath . '/photos', $photoName);
 
-                $route = match ($user->type) {
-                    'admin' => 'admin.dashboard',
-                    'club' => 'club.dashboard',
-                    'company' => 'entreprise.dashboard',
-                    default => 'person.dashboard'
-                };
+        $savedPath = $storageUrl . '/photos/' . $photoName;
+
+        $attachments['photo'] = $savedPath;
+        $person->photo = $savedPath;
+    }
+
+    // --- رفع شهادة الميلاد ---
+    if ($request->hasFile('birth_certificate')) {
+        $fileName = time() . '_' . $request->file('birth_certificate')->getClientOriginalName();
+        $request->file('birth_certificate')->move($storagePath . '/documents', $fileName);
+
+        $savedPath = $storageUrl . '/documents/' . $fileName;
+
+        $attachments['birth_certificate'] = $savedPath;
+        $person->birth_certificate = $savedPath;
+    }
+
+    // حفظ التعديلات
+    $person->save();
+
+
+    // --- تحديث أو إنشاء سجل dossier ---
+    if (!empty($attachments)) {
+        Dossier::updateOrCreate(
+            ['person_id' => $person->id],
+            [
+                'etat'        => 'pending',
+                'attachments' => json_encode($attachments),
+                'owner_type'  => $type,
+                'note_admin'  => '📌 تم رفع الوثائق وجاري التحقق منها'
+            ]
+        );
+    }
+
+
+    // --- تحديد وجهة التحويل ---
+    $route = match ($user->type) {
+        'admin'   => 'admin.dashboard',
+        'club'    => 'club.dashboard',
+        'company' => 'entreprise.dashboard',
+        default   => 'person.dashboard'
+    };
+
+    
+
 
                 return redirect()->route($route)->with('success','✔ تم استكمال البيانات بنجاح 🎉');
         }

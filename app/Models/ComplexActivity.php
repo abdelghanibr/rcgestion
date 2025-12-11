@@ -12,7 +12,7 @@ class ComplexActivity extends Model
         'complex_id',
         'activity_id',
         'capacity',
-        'season_id'
+       
     ];
 
     public function complex()

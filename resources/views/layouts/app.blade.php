@@ -80,7 +80,7 @@
                 break;
 
             case 'person':
-                $profileRoute = route('person.profile.edit');
+                $profileRoute =  route('profile.step', 1) ;
                 break;
 
             case 'entreprise':
