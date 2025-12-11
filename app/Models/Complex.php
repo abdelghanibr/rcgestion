@@ -11,8 +11,8 @@ class Complex extends Model
         'type',
         'adresse',
         'phone',
-        'capacite',
-     
+        'capacite_mi',
+     'capacite_ma',
         
     ];
 

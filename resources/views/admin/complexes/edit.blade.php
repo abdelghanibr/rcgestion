@@ -17,16 +17,24 @@
             <label class="form-label">العنوان</label>
             <input type="text" name="adresse" class="form-control" value="{{ $complex->adresse }}">
         </div>
+<div class="mb-3">
+    <label class="form-label">الطاقة الاستيعابية للبالغين</label>
+    <input type="number" name="capacite_ma" class="form-control"
+           value="{{ $complex->capacite_ma }}">
+</div>
+
+<div class="mb-3">
+    <label class="form-label">الطاقة الاستيعابية للقصر</label>
+    <input type="number" name="capacite_mi" class="form-control"
+           value="{{ $complex->capacite_mi }}">
+</div>
 
         <div class="mb-3">
             <label class="form-label">الهاتف</label>
             <input type="text" name="phone" class="form-control" value="{{ $complex->telephone }}">
         </div>
 
-        <div class="mb-3">
-            <label class="form-label">القدرة الاستيعابية</label>
-            <input type="number" name="capacite" class="form-control" value="{{ $complex->capacite }}">
-        </div>
+       
 
         <button type="submit" class="btn btn-warning">💾 تحديث</button>
         <a href="{{ route('admin.complexes.index') }}" class="btn btn-secondary">رجوع</a>

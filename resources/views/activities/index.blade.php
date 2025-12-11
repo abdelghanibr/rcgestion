@@ -75,7 +75,7 @@
                     <h5 class="fw-bold" style="color: {{ $a->color }};">{{ $a->title }}</h5>
 
                     <p class="text-muted">{{ Str::limit($a->description, 90) }}</p>
-
+                    <p class="text-muted" >الرقم/  {{ $a->id }} </p>
                   <a href="{{ route('activities.complexes', $a->id) }}" class="btn btn-success btn-sm">
     <i class="fa-solid fa-pen-to-square ms-1"></i>
     تسجيل في النشاط

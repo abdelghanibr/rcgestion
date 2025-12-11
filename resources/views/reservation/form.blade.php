@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (plans.length === 0) return;// لا توجد خطط تسعير
 
     // اختيار خطة التسعير المناسبة
-    let plan = plans.find(p => p.sessions_per_week == hours);// البحث عن خطة تطابق عدد الساعات المختارة
+   // البحث عن خطة تطابق عدد الساعات المختارة
 
     if (!plan) {
         // إخفاء البطاقة إذا لا يوجد خطة مناسبة
@@ -269,6 +269,10 @@ function updateInputs() {// تحديث الحقول المخفية و السعر
     }
 
     function updatePrice() {// تحديث السعر
+    
+         let plan = plans.find(p => p.sessions_per_week == hours);
+
+           alert(plan) ;
         const totalHours = selectedSlots.length;// حساب عدد الساعات المختارة
         document.getElementById('total_price').value = totalHours > 0
             ? (totalHours ) + " دج"

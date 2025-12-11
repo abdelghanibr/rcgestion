@@ -15,7 +15,7 @@ use App\Http\Controllers\ComplexeController;
 use App\Http\Controllers\Admin\ComplexController;
 use App\Http\Controllers\Admin\ActivitysController;
 use App\Http\Controllers\Admin\PricingsPlanController ;
-
+use App\Http\Controllers\Admin\capacityController ;
 
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\ClubAuthController;
@@ -196,6 +196,9 @@ Route::get('/admin/profile/edit', [RegisterController::class, 'edit'] )->name('a
   Route::put('/admin/profile/update', [RegisterController::class, 'update'])->name('admin.profile.update');
 
 
+  
+
+
 
 
 
@@ -237,17 +240,31 @@ Route::get('/admin/profile/edit', [RegisterController::class, 'edit'] )->name('a
 
 
 
+// gestion des capacités
+// Capacities Management
+Route::get('/admin/capacities', [CapacityController::class, 'index'])
+    ->name('admin.capacities.index');
 
+Route::get('/admin/capacities/create', [CapacityController::class, 'create'])
+    ->name('admin.capacities.create');
 
+Route::post('/admin/capacities', [CapacityController::class, 'store'])
+    ->name('admin.capacities.store');
 
+Route::get('/admin/capacities/{id}/edit', [CapacityController::class, 'edit'])
+    ->name('admin.capacities.edit');
 
+Route::put('/admin/capacities/{id}', [CapacityController::class, 'update'])
+    ->name('admin.capacities.update');
 
+Route::delete('/admin/capacities/{id}', [CapacityController::class, 'destroy'])
+    ->name('admin.capacities.destroy');
 
 
 
 
 // gestion des complexes
-Route::get('/admin/complexes', [ComplexeController::class, 'index'])
+   Route::get('/admin/complexes', [ComplexeController::class, 'index'])
         ->name('admin.complexes.index');
     Route::get('/admin/complexes/create', [ComplexController::class, 'create'])
         ->name('admin.complexes.create');

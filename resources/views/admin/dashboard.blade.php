@@ -134,6 +134,19 @@
             </a>
         </div>
 
+       <div class="col-md-3">
+    <a href="{{ route('admin.capacities.index') }}" class="text-decoration-none text-dark">
+        <div class="dash-card">
+            <div class="dash-icon">👥</div>
+            <h6 class="fw-bold">الطاقة الاستيعابية</h6>
+            <div class="count-box">
+                عدد الطاقات: {{ \App\Models\ComplexActivity::count() }}
+            </div>
+        </div>
+    </a>
+</div>
+
+
     </div>
 </div>
 

@@ -18,8 +18,10 @@
                     <th>#</th>
                     <th>الاسم</th>
                     <th>العنوان</th>
-                    <th>الهاتف</th>
-                    <th>الطاقة الاستيعابية</th>
+                   
+                    <th>الطاقة  القصوى للبالغين</th>
+                      <th>الطاقة  للقصوى للقصر</th>
+                     <th>الهاتف</th>
                     <th>إجراءات</th>
                 </tr>
             </thead>
@@ -29,8 +31,10 @@
                     <td>{{ $loop->iteration }}</td>
                     <td>{{ $c->nom }}</td>
                     <td>{{ $c->adresse ?? '—' }}</td>
+                     <td>{{ $c->capacite_mi ?? '—' }}</td>
+                      <td>{{ $c->capacite_ma ?? '—' }}</td>
                     <td>{{ $c->telephone ?? '—' }}</td>
-                    <td>{{ $c->capacite ?? '—' }}</td>
+                  
                     <td>
                         <a href="{{ route('admin.complexes.edit', $c->id) }}" class="btn btn-sm btn-warning">✏ تعديل</a>
 

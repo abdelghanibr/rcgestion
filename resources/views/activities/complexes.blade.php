@@ -44,12 +44,10 @@
                     </h5>
 
                     <p class="text-muted small mb-1">
-                        🧑‍🤝‍🧑 السعة: {{ $complex->capacite }} شخص
+                <p class="text-muted" >الرقم/  {{ $complex->id }} </p>
                     </p>
 
-                    <p class="fw-bold text-success mb-3">
-                        💵 السعر: {{ number_format($complex->prix,2) }} دج
-                    </p>
+                  
 
                     <a href="{{ route('reservation.form', $complex->id) }}"
                        class="btn btn-success w-100">
