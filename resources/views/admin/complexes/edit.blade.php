@@ -4,7 +4,7 @@
 <div class="container py-4">
     <h3 class="mb-4">✏ تعديل بيانات المركب</h3>
 
-    <form action="{{ route('complexes.update', $complex->id) }}" method="POST">
+    <form action="{{ route('admin.complexes.update', $complex->id) }}" method="POST">
         @csrf
         @method('PUT')
 
@@ -29,7 +29,7 @@
         </div>
 
         <button type="submit" class="btn btn-warning">💾 تحديث</button>
-        <a href="{{ route('complexes.index') }}" class="btn btn-secondary">رجوع</a>
+        <a href="{{ route('admin.complexes.index') }}" class="btn btn-secondary">رجوع</a>
     </form>
 </div>
 @endsection

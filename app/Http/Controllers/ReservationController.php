@@ -86,27 +86,30 @@ public function availability($complexActivityId)
   public function form($id)
 {
     //dd($id);
-    $complex = Complex::findOrFail($id);
-    $user = Auth::user();
-    $activity_id = session('activity_id');
-    $activity = \App\Models\Activity::find($activity_id);
+    $complex = Complex::findOrFail($id);// id de complex 
+    $user = Auth::user(); //user actuel
+    $activity_id = session('activity_id');// id de l'activité sélectionnée
+    $activity = \App\Models\Activity::find($activity_id);//tous les info de l'activité
 
-    $complexActivity = ComplexActivity::where('activity_id', $activity_id)
+    $complexActivity = ComplexActivity::where('activity_id', $activity_id) //id de complex_activity
                     ->where('complex_id', $id)
                     ->firstOrFail();
 
-$pricingPlans = PricingPlan::where('activity_id', $complexActivity->activity_id)
+     $age = Person :: where( 'user_id' , $user->id) -> first();              
+
+                   
+$pricingPlans = PricingPlan::where('activity_id', $complexActivity->activity_id) // id de planing_pricing selon l'activité
     ->where(function($q) use ($user) {
-        if ($user->type_client == 'person') {
-            $q->where('type_client', 'person')
-              ->where('age_category_id', $user->age_category_id);
-        } else {
+        if ($user->type == 'person') {//si le user est person
+            $q->where('type_client', 'person')// dans la table pricing_plan pour prson 
+              ->where('age_category_id', $user->age->age_category_id ); // et age_category_id
+                      } else {
             $q->where('type_client', 'club');
         }
     })
-    ->where('active', 1)
-    ->whereDate('valid_from', '<=', now())
-    ->whereDate('valid_to', '>=', now())
+    ->where('active', 1)//plan actif
+    ->whereDate('valid_from', '<=', now())// date de validité
+    //->orWhereNull('valid_to')
     ->get();
 
 
@@ -137,8 +140,7 @@ $pricingPlans = PricingPlan::where('activity_id', $complexActivity->activity_id)
     $dossier = Club::where('user_id', $user->id)->first();
     // تحقق من الدوسيي
     if ($user->type === 'company' || $user->type === 'club') {
-
-        
+      
         
         if (!$dossier) {
             return view('errors.error-dossier', [
@@ -170,7 +172,7 @@ $pricingPlans = PricingPlan::where('activity_id', $complexActivity->activity_id)
     }
 
     // 🔥 إضافة السعة والجدولة الديناميكية دون تغيير أي شيء آخر
-    $capacity = $complexActivity->capacite ? : 2;
+    $capacity = $complexActivity->capacite ? : 50;
 
   //   $capacity = ComplexActivity::findOrFail($complexActivityId)->capacite ? : 1;
     $calendarData = [];
@@ -181,12 +183,13 @@ $pricingPlans = PricingPlan::where('activity_id', $complexActivity->activity_id)
     $userReservations = Reservation::where('user_id', $user->id)
     ->where('complex_activity_id', $complexActivity->id)
    // ->whereBetween('start_date', [ $seasons ->date_debut, $seasons->date_fin])
-    ->get()
+    ->get() 
+    
     ->map(function($r) {
         $events = [];
 
         // 👈 استخراج كل الخانات (الساعات) من JSON
-        $timeSlots = json_decode($r->time_slots, true);
+        $timeSlots= json_decode($r->time_slots, true);
 
         if (!$timeSlots) return [];
 
@@ -206,7 +209,7 @@ $pricingPlans = PricingPlan::where('activity_id', $complexActivity->activity_id)
         return $events;
     })
     ->flatten(1);
-
+//dd( $userReservations);
     /*for ($day = $startOfWeek; $day <= $endOfWeek; $day->addDay()) {
 
         $date = $day->format('Y-m-d');

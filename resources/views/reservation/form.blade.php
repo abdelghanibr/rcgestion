@@ -231,14 +231,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const price = {{ $complexActivity->price ?? 0 }};
     let selectedSlots = [];
-    function updatePricingCard() {
-    const hours = selectedSlots.length;
-    const plans = @json($pricingPlans ?? []);
-    const userReservations = @json($userReservations ?? []);
-    if (plans.length === 0) return;
+    function updatePricingCard() {// تحديث بطاقة خطة التسعير
+    const hours = selectedSlots.length;// حساب عدد الساعات المختارة
+    const plans = @json($pricingPlans ?? []);// جلب خطط التسعير من الـ Backend
+    const userReservations = @json($userReservations ?? []);// جلب الحجوزات الحالية للمستخدم
+    if (plans.length === 0) return;// لا توجد خطط تسعير
 
     // اختيار خطة التسعير المناسبة
-    let plan = plans.find(p => p.sessions_per_week == hours);
+    let plan = plans.find(p => p.sessions_per_week == hours);// البحث عن خطة تطابق عدد الساعات المختارة
 
     if (!plan) {
         // إخفاء البطاقة إذا لا يوجد خطة مناسبة
@@ -247,46 +247,46 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // عرض تفاصيل الخطة
-    document.getElementById('plan_type').innerText = plan.pricing_type;
-    document.getElementById('plan_hours').innerText = plan.sessions_per_week + " ساعات";
-    document.getElementById('plan_price').innerText = plan.price + " دج";
-    document.getElementById('plan_duration').innerText =
+    document.getElementById('plan_type').innerText = plan.pricing_type;// نوع الخطة
+    document.getElementById('plan_hours').innerText = plan.sessions_per_week + " ساعات";// عدد الساعات في الأسبوع
+    document.getElementById('plan_price').innerText = plan.price + " دج";// السعر
+    document.getElementById('plan_duration').innerText =//  مدة الاشتراك
         plan.duration_value + " " + (plan.duration_unit == 'month' ? "شهر" : "موسم");
 
-    document.getElementById('pricingCard').style.display = 'block';
+    document.getElementById('pricingCard').style.display = 'block';// إظهار البطاقة
 }
-function updateInputs() {
+function updateInputs() {// تحديث الحقول المخفية و السعر
     document.getElementById('selected_slots').value = JSON.stringify(selectedSlots);
-    updatePrice();
+    updatePrice();// تحديث السعر
     updatePricingCard(); // 👈 إضافة هنا
 }
 
     // alert($schedules);
     // 🔁 تحديث الحقل المخفي + السعر
-    function updateInputs() {
+    function updateInputs() {// تحديث الحقول المخفية و السعر
         document.getElementById('selected_slots').value = JSON.stringify(selectedSlots);
         updatePrice();
     }
 
-    function updatePrice() {
-        const totalHours = selectedSlots.length;
+    function updatePrice() {// تحديث السعر
+        const totalHours = selectedSlots.length;// حساب عدد الساعات المختارة
         document.getElementById('total_price').value = totalHours > 0
-            ? (totalHours * price) + " دج"
+            ? (totalHours ) + " دج"
             : "";
     }
 
-    const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-        initialView: 'timeGridWeek',
-        locale: 'ar',
-        direction: 'rtl',
-        firstDay: 0,
+    const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {// إعدادات التقويم
+        initialView: 'timeGridWeek',// عرض الأسبوع مع الساعات
+        locale: 'ar',   // 👈 اللغة العربية
+        direction: 'rtl',// 👈 من اليمين إلى اليسار
+        firstDay: 0,// 👈 بداية الأسبوع يوم الأحد
         selectable: true,          // 👈 تفعيل select
-        selectMirror: true,
-        slotMinTime: "08:00:00",
-        slotMaxTime: "22:00:00",
+        selectMirror: true,// 👈 تأثير المرآة عند التحديد
+        slotMinTime: "08:00:00",// 👈 أول خانة = 8 صباحاً
+        slotMaxTime: "22:00:00",// 👈 آخر خانة = 10 مساءً
         slotDuration: "01:00:00",  // 👈 كل خانة = ساعة
-        allDaySlot: false,
-        height: "auto",
+        allDaySlot: false,// 👈 إخفاء خانة اليوم الكامل
+        height: "auto",// 👈 ارتفاع تلقائي
 
 
 
@@ -294,15 +294,15 @@ function updateInputs() {
         
 
         // 🟦 عند تحديد خانة (select) نضيف ساعة جديدة
-  select: function(info) {
-    const dateStr = info.startStr.slice(0, 10);
-    const slotStart = info.startStr;
-    const slotEnd   = info.endStr;
+  select: function(info) {// عند التحديد
+    const dateStr = info.startStr.slice(0, 10);// YYYY-MM-DD
+    const slotStart = info.startStr;// كامل تاريخ ووقت البداية
+    const slotEnd   = info.endStr;// كامل تاريخ ووقت النهاية
 
     const dayIndex = new Date(info.startStr).getDay(); // رقم اليوم 0-6
     const hoursStart = info.startStr.slice(11,16); // HH:MM
-    const hoursEnd   = info.endStr.slice(11,16);
-     const schedules = @json($schedules ?? []);
+    const hoursEnd   = info.endStr.slice(11,16);// HH:MM
+     const schedules = @json($schedules ?? []);// جلب جداول الساعات من الـ Backend
 
 //if (schedules.length > 0) {
 //    alert(JSON.stringify(schedules, null, 2));
@@ -312,10 +312,10 @@ function updateInputs() {
 
 
     // البحث عن schedule مطابق في قاعدة البيانات
-    const schedule = schedules.find(s =>
-        s.day_number == dayIndex 
-      //  s.heure_debut.slice(0,5) === hoursStart &&
-       // s.heure_fin.slice(0,5) === hoursEnd
+    const schedule = schedules.find(s =>// البحث عن الجدول المناسب
+        s.day_number == dayIndex //&&
+       // s.heure_debut.slice(0,5) === hoursStart && // HH:MM
+      //  s.heure_fin.slice(0,5) === hoursEnd //
     );
 
     if (!schedule) {
@@ -325,37 +325,38 @@ function updateInputs() {
         return;
     }
 
-    const slot = {
-        date: dateStr,
-        start: slotStart,
-        end:   slotEnd,
+    const slot = {// إنشاء كائن الساعة المختارة
+        date: dateStr,//    YYYY-MM-DD
+        start: slotStart,// كامل تاريخ ووقت البداية
+        end:   slotEnd,// كامل تاريخ ووقت النهاية
         schedule_id: schedule.id // 🎯 هنا المفتاح
     };
 
-    const daySlots = selectedSlots.filter(s => s.date === dateStr);
+    const daySlots = selectedSlots.filter(s => s.date === dateStr);// الساعات المختارة في نفس اليوم
 
-    if (!selectedSlots.some(s => s.start === slot.start)) {
+    if (!selectedSlots.some(s => s.start === slot.start)) {// التحقق من عدم التكرار
 
-        const uniqueDays = [...new Set(selectedSlots.map(s => s.date))];
+        const uniqueDays = [...new Set(selectedSlots.map(s => s.date))];// الأيام الفريدة المختارة
 
-        if (!uniqueDays.includes(dateStr) && uniqueDays.length >= 4) {
+        if (!uniqueDays.includes(dateStr) && uniqueDays.length >= 4) {// تحقق من الحد الأقصى للأيام
             alert("⚠ الحد الأقصى 4 أيام في الأسبوع");
             calendar.unselect();
             return;
         }
 
-        if (daySlots.length >= 2) {
+        if (daySlots.length >= 2) {// تحقق من الحد الأقصى للساعات في نفس اليوم
             alert("⚠ يمكنك اختيار ساعتين فقط في اليوم");
             calendar.unselect();
             return;
         }
 
-        selectedSlots.push(slot);
+        selectedSlots.push(slot);// إضافة الساعة إلى المصفوفة
 
-        calendar.addEvent({
-            start: slotStart,
-            end:   slotEnd,
-            classNames: ['selected-slot']
+
+        calendar.addEvent({// رسم الحدث في التقويم
+            start: slotStart,// بداية الحدث
+            end:   slotEnd,// نهاية الحدث
+            classNames: ['selected-slot']// إضافة صنف CSS للتنسيق
         });
     }
 
@@ -365,36 +366,41 @@ function updateInputs() {
 
 
         // 🟥 عند الضغط على حدث، نلغيه (deselection)
-        eventClick: function(info) {
+        eventClick: function(info) {// عند النقر على حدث
             const idStart = info.event.startStr; // نفس الـ start الذي خزّناه
-            selectedSlots = selectedSlots.filter(s => s.start !== idStart);
+            selectedSlots = selectedSlots.filter(s => s.start !== idStart);// إزالة الساعة من المصفوفة
             info.event.remove(); // إزالة الحدث من التقويم
-            updateInputs();
+            updateInputs();// تحديث الحقول المخفية و السعر
         }
     });
 
 // 🟢 جلب جدول الساعات من الـ Backend
 const schedules = @json($schedules ?? []);
 
-console.log("📌 ساعات متاحة من الـDB:", schedules);
+//console.log("📌 ساعات متاحة من الـDB:", schedules);
+
+const userReservations = @json($userReservations ?? []);
+
+
+
 
 // 🟢 رسم الساعات المتاحة فور تحميل التقويم
 schedules.forEach(s => {
     const calendarDate = calendar.getDate(); // اليوم الحالي
-    const startOfWeek = new Date(calendarDate);
+    const startOfWeek = new Date(calendarDate);// نسخة من اليوم الحالي
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // بداية الأسبوع
 
     // ⏱️ إعداد تاريخ ووقت الحدث
-    const start = new Date(startOfWeek);
-    start.setDate(start.getDate() + parseInt(s.day_number));
-    start.setHours(...s.heure_debut.split(":"));
+    const start = new Date(startOfWeek);// نسخة من بداية الأسبوع
+    start.setDate(start.getDate() + parseInt(s.day_number));// ضبط اليوم
+    start.setHours(...s.heure_debut.split(":"));// ضبط وقت البداية
 
-    const end = new Date(startOfWeek);
-    end.setDate(end.getDate() + parseInt(s.day_number));
-    end.setHours(...s.heure_fin.split(":"));
+    const end = new Date(startOfWeek);// نسخة من بداية الأسبوع
+    end.setDate(end.getDate() + parseInt(s.day_number));// ضبط اليوم
+    end.setHours(...s.heure_fin.split(":"));// ضبط وقت النهاية
 
     // 🎨 رسم الحدث كخلفية خضراء هادئة
-    calendar.addEvent({
+    calendar.addEvent({// إضافة حدث
         start: start,
         end: end,
         display: 'background',
@@ -402,6 +408,11 @@ schedules.forEach(s => {
         borderColor: '#145a32',
         classNames: ['schedule-allowed']
     });
+});
+
+
+userReservations.forEach(event => {
+    calendar.addEvent(event);
 });
 
 
