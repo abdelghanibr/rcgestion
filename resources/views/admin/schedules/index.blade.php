@@ -85,6 +85,10 @@
                     <th>الساعات المختارة</th>
                     <th>الجنس</th>
                     <th>العدد</th>
+                    <th>نوع التسعير</th>
+<th>السعر</th>
+<th>مخصص لـ</th>
+
                     <th>التحكم</th>
                 </tr>
             </thead>
@@ -158,6 +162,33 @@
                     </td>
 
                     <td>{{ $s->nbr ?? '—' }}</td>
+{{-- نوع التسعير --}}
+<td>
+    @if($s->type_prix == 'pricing_plan')
+        <span class="badge bg-info">حسب خطة التسعير</span>
+    @else
+        <span class="badge bg-warning">سعر ثابت</span>
+    @endif
+</td>
+
+{{-- السعر --}}
+<td>
+    @if($s->type_prix == 'fix')
+        {{ $s->price }} دج
+    @else
+        —
+    @endif
+</td>
+
+{{-- user_id --}}
+<td>
+    @if($s->user_id)
+        {{ $s->user->name }} <br>
+        <small class="text-muted">({{ $s->user->type }})</small>
+    @else
+        —
+    @endif
+</td>
 
                     <td>
                         <a href="{{ route('admin.schedules.edit', $s->id) }}"

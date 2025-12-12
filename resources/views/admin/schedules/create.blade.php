@@ -4,8 +4,17 @@
 <div class="container py-4" style="direction: rtl; text-align:right;">
 
     <h3 class="fw-bold mb-4">➕ إضافة جدول جديد</h3>
+@if ($errors->any())
+    <div class="alert alert-danger fw-bold">
+        <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+                <li>⚠ {{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
 
-    {{-- فورم إنشاء جدول --}}
+    {{-- Form --}}
     <form action="{{ route('admin.schedules.store') }}" method="POST" id="scheduleForm">
         @csrf
 
@@ -31,7 +40,7 @@
             </select>
         </div>
 
-        {{-- hidden --}}
+        {{-- Complex Activity ID --}}
         <input type="hidden" name="complex_activity_id" id="complex_activity_id">
 
         {{-- الفئة العمرية --}}
@@ -60,51 +69,97 @@
             </select>
         </div>
 
-        {{-- العدد --}}
+        {{-- عدد المقاعد --}}
         <div class="mb-3">
             <label class="fw-bold">عدد الأماكن</label>
             <input type="number" name="nbr" class="form-control">
         </div>
 
-        {{-- time_slots --}}
+        {{-- نوع التسعيرة --}}
+        <div class="mb-3">
+            <label class="fw-bold">💰 نوع التسعيرة</label>
+            <select name="type_prix" id="type_prix" class="form-control" required>
+                <option value="pricing_plan">حسب خطة التسعير</option>
+                <option value="fix">سعر ثابت</option>
+            </select>
+        </div>
+
+        {{-- السعر الثابت --}}
+        <div class="mb-3" id="fixed_price_box" style="display:none;">
+            <label class="fw-bold">💵 السعر الثابت (دج)</label>
+            <input type="number" name="price" class="form-control">
+        </div>
+
+        {{-- المستخدم (Club أو Company فقط) --}}
+        <div class="mb-3">
+            <label class="fw-bold">🔑 إسناد الجدول إلى (اختياري)</label>
+            <select name="user_id" class="form-control">
+                <option value="">— لا أحد —</option>
+                @foreach($users as $u)
+                    <option value="{{ $u->id }}">
+                        {{ $u->name }} ({{ $u->type }})
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- Time Slots --}}
         <input type="hidden" name="time_slots" id="time_slots">
 
-        <div class="alert alert-info fw-bold text-center">
-            🗓️ اختر الأيام والساعات الخاصة بالمجموعة من التقويم أسفله
+        <div class="alert alert-info text-center fw-bold">
+            🗓️ اختر الأيام والساعات من التقويم أدناه
         </div>
 
         <div class="card p-3 shadow-sm mb-4">
             <div id="calendar"></div>
         </div>
-        <div class="mb-3">
-    <label class="fw-bold">💰 نوع التسعيرة</label>
-    <select name="type_prix" id="type_prix" class="form-control" required>
-        <option value="pricing_plan">حسب خطة التسعير</option>
-        <option value="fixed">سعر ثابت</option>
-    </select>
-</div>
-
-<div class="mb-3" id="fixed_price_box" style="display:none;">
-    <label class="fw-bold">💵 السعر الثابت (دج)</label>
-    <input type="number" name="price" class="form-control">
-</div>
-
 
         <button class="btn btn-success w-100 py-2 fw-bold">💾 حفظ الجدول</button>
     </form>
 
 </div>
 @endsection
-
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
 
 <style>
 .selected-slot {
-    background-color: #007bff !important;
-    border-color: #004a99 !important;
+    background: #007bff !important;
     color: white !important;
+    border-color: #004a99 !important;
 }
+/* تقليل ارتفاع آخر سطر في FullCalendar */
+.fc-scroller {
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+}
+/* إصلاح تمدد آخر صف في تقويم FullCalendar */
+.fc-timegrid-slot-minor,
+.fc-timegrid-slot-major {
+    height: 28px !important;   /* اجعل السطر صغير */
+    min-height: 28px !important;
+    max-height: 28px !important;
+    padding: 0 !important;
+}
+
+/* حل خاص لمنع الصف الأخير من التمدد */
+.fc-timegrid-slots tr:last-child td {
+    height: 20px !important;
+    min-height: 20px !important;
+    max-height: 20px !important;
+    padding: 0 !important;
+}
+
+/* منع FullCalendar من صنع مساحة فارغة كبيرة أسفل */
+.fc-timegrid-body {
+    height: auto !important;
+}
+
+.fc-scroller-liquid {
+    max-height: 620px !important; /* يمكنك تعديل الرقم */
+}
+
+
 </style>
 @endpush
 
@@ -112,11 +167,18 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
 <script>
+
 let selectedSlots = [];
 
 function updateHiddenField() {
     document.getElementById("time_slots").value = JSON.stringify(selectedSlots);
 }
+
+// ⭐ إظهار/إخفاء السعر الثابت
+document.getElementById("type_prix").addEventListener("change", function () {
+    document.getElementById("fixed_price_box").style.display =
+        this.value === "fix" ? "block" : "none";
+});
 
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -126,21 +188,21 @@ document.addEventListener('DOMContentLoaded', function () {
         direction: 'rtl',
         firstDay: 0,
         selectable: true,
-        slotMinTime: "08:00:00",
-        slotMaxTime: "22:00:00",
+        slotMinTime: "05:00:00",
+        slotMaxTime: "23:00:00",
         slotDuration: "01:00:00",
         allDaySlot: false,
+        contentHeight: "auto",       // ❗ يمنع FullCalendar من تمديد آخر خط
+    height: "auto",              // ❗ يجعل الارتفاع حسب المحتوى فقط
 
-        select: function(info) {
+    expandRows: false,           // ❗ أهم سطر!! يمنع تمديد الصف الأخير نهائياً
 
-            const start = info.startStr;
-            const end   = info.endStr;
-            const day   = new Date(start).getDay();
+        select(info) {
 
             const slot = {
-                day_number: day,
-                start: start.slice(11, 16),
-                end: end.slice(11, 16)
+                day_number: new Date(info.start).getDay(),
+                start: info.startStr.slice(11,16),
+                end:   info.endStr.slice(11,16)
             };
 
             selectedSlots.push(slot);
@@ -155,12 +217,10 @@ document.addEventListener('DOMContentLoaded', function () {
             calendar.unselect();
         },
 
-        eventClick: function(info) {
-            const start = info.event.startStr.slice(11, 16);
-
+        eventClick(info) {
+            const start = info.event.startStr.slice(11,16);
             selectedSlots = selectedSlots.filter(s => s.start !== start);
             info.event.remove();
-
             updateHiddenField();
         }
     });
@@ -168,22 +228,21 @@ document.addEventListener('DOMContentLoaded', function () {
     calendar.render();
 });
 
-
-// 🔍 AJAX لجلب complex_activity_id
+// AJAX جلب complex_activity_id
 document.getElementById("complex").addEventListener("change", loadCombo);
 document.getElementById("activity").addEventListener("change", loadCombo);
 
 function loadCombo() {
-    const complex = document.getElementById("complex").value;
-    const activity = document.getElementById("activity").value;
+    const c = document.getElementById("complex").value;
+    const a = document.getElementById("activity").value;
+    if (!c || !a) return;
 
-    if (!complex || !activity) return;
-
-    fetch(`/admin/get-complex-activity?complex_id=${complex}&activity_id=${activity}`)
-        .then(res => res.json())
+    fetch(`/admin/get-complex-activity?complex_id=${c}&activity_id=${a}`)
+        .then(r => r.json())
         .then(data => {
             document.getElementById("complex_activity_id").value = data.id ?? "";
         });
 }
+
 </script>
 @endpush

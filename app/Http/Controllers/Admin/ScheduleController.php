@@ -55,45 +55,58 @@ class ScheduleController extends Controller
      * حفظ جدول جديد
      */
     public function store(Request $request)
-{ //dd($request->all());
+{
+    try {
 
-    $request->validate([
-        'complex_id' => 'required',
-        'activity_id' => 'required',
-       // 'complex_activity_id' => 'required',
-        'age_category_id' => 'required',
-        'groupe' => 'required',
-        'sex' => 'required|in:H,F,X',
-        'nbr' => 'nullable|integer',
-        'time_slots' => 'required'
-    ]);
+        // 🟦 1) Validation complète
+        $validated = $request->validate([
+            'complex_id'         => 'required|integer',
+            'activity_id'        => 'required|integer',
+          //  'age_category_id'    => 'required|integer',
+            'groupe'             => 'required|string|max:50',
+            'sex'                => 'required|in:H,F,X',
+            'nbr'                => 'nullable|integer|min:0',
+            'type_prix'          => 'required|in:pricing_plan,fix',
+            'price'              => 'nullable|numeric|min:0',
+            'user_id'            => 'nullable|integer|exists:users,id',
+            'time_slots'         => 'required|json',
+        ]);
 
-   // dd($request->all());
+        // 🟦 2) extraire complex_activity_id
+        $complexActivity = ComplexActivity::where('complex_id', $request->complex_id)
+                                          ->where('activity_id', $request->activity_id)
+                                          ->first();
 
-// 🟦 1) استخراج complex_activity_id تلقائياً
-$complexActivity = \App\Models\ComplexActivity::where('complex_id', $request->complex_id)
-                    ->where('activity_id', $request->activity_id)
-                    ->first();
+        if (!$complexActivity) {
+            return back()->withErrors([
+                'complex_id' => '❌ هذا النشاط غير مرتبط بهذا المركب. يجب إضافته أولاً في complex_activities'
+            ])->withInput();
+        }
 
-if (!$complexActivity) {
-    return back()->with('error', '⚠ هذا النشاط غير مضاف داخل هذا المركب! يجب إضافته أولاً في Complex Activities.');
+        // 🟦 3) créer schedule
+        $schedule = new Schedule();
+        $schedule->complex_activity_id = $complexActivity->id;
+        $schedule->age_category_id     = $request->age_category_id;
+        $schedule->groupe              = $request->groupe;
+        $schedule->sex                 = $request->sex;
+        $schedule->nbr                 = $request->nbr;
+        $schedule->type_prix           = $request->type_prix;
+        $schedule->price               = $request->type_prix == "fix" ? $request->price : null;
+        $schedule->user_id             = $request->user_id;
+        $schedule->time_slots          = $request->time_slots; // JSON
+
+        $schedule->save();
+
+        return redirect()->route('admin.schedules.index')
+                         ->with('success', '✔ تم حفظ الجدول بنجاح');
+
+    } catch (\Exception $e) {
+
+        return back()->with('error', '❌ خطأ أثناء حفظ البيانات: ' . $e->getMessage())
+                     ->withInput();
+    }
 }
 
-Schedule::create([
-    'complex_id'        => $request->complex_id,
-    'activity_id'       => $request->activity_id,
-    'complex_activity_id' => $complexActivity->id,  // 🎯 حل المشكلة هنا
-    'age_category_id'   => $request->age_category_id,
-    'groupe'            => $request->groupe,
-    'sex'               => $request->sex,
-    'nbr'               => $request->nbr,
-    'time_slots'        => $request->time_slots, // JSON محفوظ كما هو
-]);
-
-
-    return redirect()->route('admin.schedules.index')
-                     ->with('success', '✔ تم إنشاء الجدول بنجاح');
-}
 
 
     /**
@@ -130,49 +143,58 @@ Schedule::create([
      * تعديل الجدول
      */
     public function update(Request $request, $id)
-    {
-        $request->validate([
-            'complex_id'       => 'required|integer',
-            'activity_id'      => 'required|integer',
-          //  'age_category_id'  => 'required|integer',
-            'groupe'           => 'required|string',
-            'sex'              => 'required|in:H,F,X',
-            'nbr'              => 'nullable|integer',
-           // 'type_prix'        => 'required|in:pricing_plan,fix',
-           // 'price'            => 'nullable|numeric',
-            'time_slots'       => 'required|json',
-          //  'user_id'          => 'nullable|integer',
+{
+    try {
+
+        // 🟦 1) Validation complète
+        $validated = $request->validate([
+            'complex_id'         => 'required|integer',
+            'activity_id'        => 'required|integer',
+           // 'age_category_id'    => 'required|integer',
+            'groupe'             => 'required|string|max:50',
+            'sex'                => 'required|in:H,F,X',
+            'nbr'                => 'nullable|integer|min:0',
+            'type_prix'          => 'required|in:pricing_plan,fix',
+            'price'              => 'nullable|numeric|min:0',
+            'user_id'            => 'nullable|integer|exists:users,id',
+            'time_slots'         => 'required|json',
         ]);
 
         $schedule = Schedule::findOrFail($id);
 
-        // البحث عن complex_activity_id الجديد
+        // 🟦 2) Extraire complex_activity_id
         $complexActivity = ComplexActivity::where('complex_id', $request->complex_id)
                                           ->where('activity_id', $request->activity_id)
                                           ->first();
 
         if (!$complexActivity) {
             return back()->withErrors([
-                'msg' => '❌ النشاط غير مرتبط بالمركب.'
-            ]);
+                'complex_id' => '❌ هذا النشاط غير مرتبط بهذا المركب. يجب إضافته أولاً في complex_activities'
+            ])->withInput();
         }
 
-        $schedule->update([
-            'complex_activity_id' => $complexActivity->id,
-            'age_category_id'     => $request->age_category_id,
-            'groupe'              => $request->groupe,
-            'sex'                 => $request->sex,
-            'nbr'                 => $request->nbr,
-            'type_prix'           => $request->type_prix,
-            'price'               => $request->price,
-            'time_slots'          => $request->time_slots,
-            'user_id'             => $request->user_id,
-        ]);
+        // 🟦 3) Mise à jour des champs
+        $schedule->complex_activity_id = $complexActivity->id;
+        $schedule->age_category_id     = $request->age_category_id;
+        $schedule->groupe              = $request->groupe;
+        $schedule->sex                 = $request->sex;
+        $schedule->nbr                 = $request->nbr;
+        $schedule->type_prix           = $request->type_prix;
+        $schedule->price               = $request->type_prix == "fix" ? $request->price : null;
+        $schedule->user_id             = $request->user_id;
+        $schedule->time_slots          = $request->time_slots;
+
+        $schedule->save();
 
         return redirect()->route('admin.schedules.index')
                          ->with('success', '✔ تم تعديل الجدول بنجاح');
-    }
 
+    } catch (\Exception $e) {
+
+        return back()->with('error', '❌ فشل تحديث الجدول: ' . $e->getMessage())
+                     ->withInput();
+    }
+}
 
     /**
      * حذف جدول
