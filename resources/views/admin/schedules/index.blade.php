@@ -82,8 +82,7 @@
                     <th>الفئة العمرية</th>
                     <th>المجموعة</th>
                     <th>اليوم</th>
-                    <th>من</th>
-                    <th>إلى</th>
+                    <th>الساعات المختارة</th>
                     <th>الجنس</th>
                     <th>العدد</th>
                     <th>التحكم</th>
@@ -100,7 +99,7 @@
                     <td>{{ $s->ageCategory->name ?? '—' }}</td>
                     <td>{{ $s->groupe }}</td>
 
-                    {{-- اليوم --}}
+                    {{-- 🟦 اليوم --}}
                     <td>
                         @php
                             $days = [
@@ -116,9 +115,41 @@
                         {{ $days[$s->day_of_week] ?? $s->day_of_week }}
                     </td>
 
-                    <td>{{ $s->heure_debut }}</td>
-                    <td>{{ $s->heure_fin }}</td>
+                    {{-- 🟦 عرض time_slots --}}
+                    <td style="text-align:right;">
+                        @php
+                            $slots = $s->time_slots;
 
+                            if (is_string($slots)) {
+                                $slots = json_decode($slots, true);
+                            }
+                            if (!is_array($slots)) {
+                                $slots = [];
+                            }
+
+                            $daysMap = [
+                                0 => "الأحد",
+                                1 => "الإثنين",
+                                2 => "الثلاثاء",
+                                3 => "الأربعاء",
+                                4 => "الخميس",
+                                5 => "الجمعة",
+                                6 => "السبت",
+                            ];
+                        @endphp
+
+                        @forelse ($slots as $slot)
+                            <div class="p-1 mb-1" style="background:#eef;border-radius:6px;">
+                                <strong>{{ $daysMap[$slot['day_number']] ?? '—' }}</strong>
+                                :
+                                {{ $slot['start'] ?? '??' }} → {{ $slot['end'] ?? '??' }}
+                            </div>
+                        @empty
+                            <span class="text-muted">لا توجد مواعيد</span>
+                        @endforelse
+                    </td>
+
+                    {{-- الجنس --}}
                     <td>
                         @if($s->sex == 'H') ذكور
                         @elseif($s->sex == 'F') إناث

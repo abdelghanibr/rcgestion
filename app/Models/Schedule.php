@@ -13,22 +13,52 @@ class Schedule extends Model
         'complex_activity_id',
         'age_category_id',
         'groupe',
-        'day_of_week',
-        'heure_debut',
-        'heure_fin',
-        'nbr',
         'sex',
+        'nbr',
+        'time_slots',
+        'type_prix',
+        'price',
+        'user_id',        // club / entreprise (nullable)
     ];
 
-    // علاقة مع النشاط المدمج
+    /**
+     * Cast JSON → array
+     */
+    protected $casts = [
+        'time_slots' => 'array',
+    ];
+
+    /**
+     * Relations
+     */
+
+    // علاقة مع complex_activities
     public function complexActivity()
     {
         return $this->belongsTo(ComplexActivity::class);
     }
 
-    // علاقة مع الفئة العمرية
+    // الوصول إلى المركب مباشرة schedule->complex
+    public function complex()
+    {
+        return $this->complexActivity->complex();
+    }
+
+    // الوصول إلى النشاط مباشرة schedule->activity
+    public function activity()
+    {
+        return $this->complexActivity->activity();
+    }
+
+    // علاقة الفئة العمرية
     public function ageCategory()
     {
         return $this->belongsTo(AgeCategory::class);
+    }
+
+    // المستخدم (club / entreprise) إن وجد
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

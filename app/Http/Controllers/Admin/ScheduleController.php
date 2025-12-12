@@ -8,80 +8,97 @@ use App\Models\AgeCategory;
 use App\Models\Complex;
 use App\Models\Activity;
 use App\Models\ComplexActivity;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class ScheduleController extends Controller
 {
-   public function index()
-{
-    $schedules = Schedule::with([
-        'complexActivity.complex',
-        'complexActivity.activity',
-        'ageCategory'
-    ])->get();
+    /**
+     * قائمة الجداول الزمنية
+     */
+    public function index()
+    {
+        $schedules = Schedule::with([
+            'complexActivity.complex',
+            'complexActivity.activity',
+            'ageCategory',
+            'user'
+        ])->get();
 
-    // هذه هي البيانات المطلوبة للفلاتر في الـ Blade
-    $complexes = \App\Models\Complex::all();
-    $activities = \App\Models\Activity::all();
+        $complexes = Complex::all();
+        $activities = Activity::all();
 
-    return view('admin.schedules.index', compact('schedules', 'complexes', 'activities'));
-}
+        return view('admin.schedules.index', compact('schedules', 'complexes', 'activities'));
+    }
 
 
+    /**
+     * صفحة إنشاء جدول جديد
+     */
     public function create()
     {
         $ageCategories = AgeCategory::all();
         $complexes = Complex::all();
         $activities = Activity::all();
+        $users = User::whereIn('type', ['club', 'company'])->get(); // user_id اختياري
 
         return view('admin.schedules.create', compact(
             'ageCategories',
             'complexes',
-            'activities'
+            'activities',
+            'users'
         ));
     }
 
+
+    /**
+     * حفظ جدول جديد
+     */
     public function store(Request $request)
-    {//dd($request);
-        $request->validate([
-            'complex_id' => 'required|integer',
-            'activity_id' => 'required|integer',
-            'age_category_id' => 'required|integer',
-            'groupe' => 'required|string',
-            'day_of_week' => 'required|string',
-            'heure_debut' => 'required',
-            'heure_fin' => 'required',
-            'nbr' => 'nullable|integer',
-            'sex' => 'required|in:H,F,X',
-        ]);
+{ //dd($request->all());
 
-        // استخراج complex_activity_id
-        $complexActivity = ComplexActivity::where('complex_id', $request->complex_id)
-                                          ->where('activity_id', $request->activity_id)
-                                          ->first();
-//dd($complexActivity);
+    $request->validate([
+        'complex_id' => 'required',
+        'activity_id' => 'required',
+       // 'complex_activity_id' => 'required',
+        'age_category_id' => 'required',
+        'groupe' => 'required',
+        'sex' => 'required|in:H,F,X',
+        'nbr' => 'nullable|integer',
+        'time_slots' => 'required'
+    ]);
 
-        if (!$complexActivity) {
-            return back()->withErrors([
-                'msg' => '❌ هذا النشاط غير مسجل داخل هذا المركب. قم بإضافته في complex_activities أولاً.'
-            ]);
-        }
+   // dd($request->all());
 
-        Schedule::create([
-            'complex_activity_id' => $complexActivity->id,
-            'age_category_id' => $request->age_category_id,
-            'groupe' => $request->groupe,
-            'day_of_week' => $request->day_of_week,
-            'heure_debut' => $request->heure_debut,
-            'heure_fin' => $request->heure_fin,
-            'nbr' => $request->nbr,
-            'sex' => $request->sex,
-        ]);
+// 🟦 1) استخراج complex_activity_id تلقائياً
+$complexActivity = \App\Models\ComplexActivity::where('complex_id', $request->complex_id)
+                    ->where('activity_id', $request->activity_id)
+                    ->first();
 
-        return redirect()->route('admin.schedules.index')
-                         ->with('success', '✔ تم إضافة الجدول بنجاح');
-    }
+if (!$complexActivity) {
+    return back()->with('error', '⚠ هذا النشاط غير مضاف داخل هذا المركب! يجب إضافته أولاً في Complex Activities.');
+}
 
+Schedule::create([
+    'complex_id'        => $request->complex_id,
+    'activity_id'       => $request->activity_id,
+    'complex_activity_id' => $complexActivity->id,  // 🎯 حل المشكلة هنا
+    'age_category_id'   => $request->age_category_id,
+    'groupe'            => $request->groupe,
+    'sex'               => $request->sex,
+    'nbr'               => $request->nbr,
+    'time_slots'        => $request->time_slots, // JSON محفوظ كما هو
+]);
+
+
+    return redirect()->route('admin.schedules.index')
+                     ->with('success', '✔ تم إنشاء الجدول بنجاح');
+}
+
+
+    /**
+     * صفحة التعديل
+     */
     public function edit($id)
     {
         $schedule = Schedule::findOrFail($id);
@@ -89,8 +106,9 @@ class ScheduleController extends Controller
         $ageCategories = AgeCategory::all();
         $complexes = Complex::all();
         $activities = Activity::all();
+        $users = User::whereIn('type', ['club', 'company'])->get();
 
-        // استخراج complex_id و activity_id الحاليين
+        // استخراج بيانات complex_id + activity_id الحالية
         $ca = ComplexActivity::find($schedule->complex_activity_id);
 
         $selected_complex = $ca ? $ca->complex_id : null;
@@ -101,53 +119,64 @@ class ScheduleController extends Controller
             'ageCategories',
             'complexes',
             'activities',
+            'users',
             'selected_complex',
             'selected_activity'
         ));
     }
 
+
+    /**
+     * تعديل الجدول
+     */
     public function update(Request $request, $id)
     {
         $request->validate([
-            'complex_id' => 'required|integer',
-            'activity_id' => 'required|integer',
-            'age_category_id' => 'required|integer',
-            'groupe' => 'required|string',
-            'day_of_week' => 'required|string',
-            'heure_debut' => 'required',
-            'heure_fin' => 'required',
-            'nbr' => 'nullable|integer',
-            'sex' => 'required|in:H,F,X',
+            'complex_id'       => 'required|integer',
+            'activity_id'      => 'required|integer',
+          //  'age_category_id'  => 'required|integer',
+            'groupe'           => 'required|string',
+            'sex'              => 'required|in:H,F,X',
+            'nbr'              => 'nullable|integer',
+           // 'type_prix'        => 'required|in:pricing_plan,fix',
+           // 'price'            => 'nullable|numeric',
+            'time_slots'       => 'required|json',
+          //  'user_id'          => 'nullable|integer',
         ]);
 
         $schedule = Schedule::findOrFail($id);
 
-        // استخراج complex_activity_id الجديد
+        // البحث عن complex_activity_id الجديد
         $complexActivity = ComplexActivity::where('complex_id', $request->complex_id)
                                           ->where('activity_id', $request->activity_id)
                                           ->first();
 
         if (!$complexActivity) {
             return back()->withErrors([
-                'msg' => '❌ هذا النشاط غير مرتبط بهذا المركب. قم بإضافته أولاً في complex_activities.'
+                'msg' => '❌ النشاط غير مرتبط بالمركب.'
             ]);
         }
 
         $schedule->update([
             'complex_activity_id' => $complexActivity->id,
-            'age_category_id' => $request->age_category_id,
-            'groupe' => $request->groupe,
-            'day_of_week' => $request->day_of_week,
-            'heure_debut' => $request->heure_debut,
-            'heure_fin' => $request->heure_fin,
-            'nbr' => $request->nbr,
-            'sex' => $request->sex,
+            'age_category_id'     => $request->age_category_id,
+            'groupe'              => $request->groupe,
+            'sex'                 => $request->sex,
+            'nbr'                 => $request->nbr,
+            'type_prix'           => $request->type_prix,
+            'price'               => $request->price,
+            'time_slots'          => $request->time_slots,
+            'user_id'             => $request->user_id,
         ]);
 
         return redirect()->route('admin.schedules.index')
                          ->with('success', '✔ تم تعديل الجدول بنجاح');
     }
 
+
+    /**
+     * حذف جدول
+     */
     public function destroy($id)
     {
         Schedule::destroy($id);
