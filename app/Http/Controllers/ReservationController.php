@@ -15,11 +15,19 @@ use App\Models\club;
 use App\Models\ComplexActivity;
 use App\Models\Schedule;
 
-use Illuminate\Support\Facades\DB;
 use App\Models\PricingPlan;
 
 class ReservationController extends Controller
 {
+    private const DAY_LABELS = [
+        'الأحد',
+        'الاثنين',
+        'الثلاثاء',
+        'الأربعاء',
+        'الخميس',
+        'الجمعة',
+        'السبت',
+    ];
 
 public function index()
 {
@@ -129,65 +137,71 @@ public function availability($complexActivityId)
     // 3) نموذج الحجز
   public function form($id)
 {
-    //dd($id);
-    $complex = Complex::findOrFail($id);// id de complex 
-    $user = Auth::user(); //user actuel
-    $activity_id = session('activity_id');// id de l'activité sélectionnée
-    $activity = \App\Models\Activity::find($activity_id);//tous les info de l'activité
+    $complex = Complex::findOrFail($id);
+    $user = Auth::user();
+    $activity_id = session('activity_id');
 
-    $complexActivity = ComplexActivity::where('activity_id', $activity_id) //id de complex_activity
+    if (!$activity_id) {
+        return redirect()->route('reservation.select_type')
+            ->with('error', '⚠ يرجى اختيار النشاط قبل المتابعة.');
+    }
+
+    $activity = Activity::findOrFail($activity_id);
+
+    $complexActivity = ComplexActivity::where('activity_id', $activity_id)
                     ->where('complex_id', $id)
                     ->firstOrFail();
 
-     $age = Person :: where( 'user_id' , $user->id) -> first();              
+    $pricingPlans = $this->eligiblePricingPlans($complexActivity->activity_id, $user);
 
-                   
-$pricingPlans = PricingPlan::where('activity_id', $complexActivity->activity_id) // اختيار الخطط حسب النشاط
-    ->where(function($q) use ($user) {
+    $schedules = Schedule::with('ageCategory')
+        ->where('complex_activity_id', $complexActivity->id)
+        ->get()
+        ->map(function ($schedule) use ($pricingPlans) {
+            $slots = is_array($schedule->time_slots) ? $schedule->time_slots : [];
+            $sessionsCount = count($slots);
 
-        // إذا كان المستخدم "شخص"
-        if ($user->type == 'person') {
+            $formattedSlots = collect($slots)->map(function ($slot) {
+                $dayIndex = $slot['day_number'] ?? null;
+                $dayLabel = $dayIndex !== null ? (self::DAY_LABELS[$dayIndex] ?? 'يوم غير معروف') : 'يوم غير معروف';
 
-            $q->where('type_client', 'person')                 // نوع الزبون شخص
-              ->where('age_category_id', optional($user->age)->age_category_id); // الفئة العمرية
+                $start = $slot['start'] ?? null;
+                $end   = $slot['end'] ?? null;
 
-        } else {
+                return trim($dayLabel . ' | ' . ($start ?? '?') . ' → ' . ($end ?? '?'));
+            })->toArray();
 
-            // إذا كان نادي / مؤسسة
-            $q->where('type_client', 'club');
+            $schedule->sessions_count = $sessionsCount;
+            $schedule->formatted_slots = $formattedSlots;
 
-        }
-    })
-   
+            if ($schedule->type_prix === 'pricing_plan') {
+                $matchedPlan = $pricingPlans->first(function ($plan) use ($sessionsCount) {
+                    return (int) $plan->sessions_per_week === (int) $sessionsCount;
+                });
 
-    ->where('active', 1)//plan actif
-    ->whereDate('valid_from', '<=', now())// date de validité
-    //->orWhereNull('valid_to')
-    ->get();
+                $schedule->applied_plan = $matchedPlan;
+                $schedule->calculated_price = $matchedPlan?->price;
+            } else {
+                $schedule->applied_plan = null;
+                $schedule->calculated_price = $schedule->price;
+            }
 
+            return $schedule;
+        });
 
+    if ($schedules->isNotEmpty()) {
+        $reservedCounts = Reservation::whereIn('schedule_id', $schedules->pluck('id'))
+            ->selectRaw('schedule_id, SUM(qty_places) as reserved')
+            ->groupBy('schedule_id')
+            ->pluck('reserved', 'schedule_id');
 
-   // $schedules = Schedule::where('complex_activity_id',$complexActivity->id)->get();
- $schedules = Schedule::select(
-                'id',
-                'heure_debut',
-                'heure_fin',
-                'complex_activity_id',
-                DB::raw("CASE day_of_week
-                    WHEN 'Dim' THEN 0
-                    WHEN 'Lun' THEN 1
-                    WHEN 'Mar' THEN 2
-                    WHEN 'Mer' THEN 3
-                    WHEN 'Jeu' THEN 4
-                    WHEN 'Ven' THEN 5
-                    WHEN 'Sam' THEN 6
-                END AS day_number")
-            )
-            ->where('complex_activity_id', $complexActivity->id)
-            ->get();
-
-
-//dd($schedules);
+        $schedules = $schedules->map(function ($schedule) use ($reservedCounts) {
+            $reserved = (int) ($reservedCounts[$schedule->id] ?? 0);
+            $schedule->reserved_places = $reserved;
+            $schedule->available_places = $schedule->nbr ? max(0, $schedule->nbr - $reserved) : null;
+            return $schedule;
+        });
+    }
 
     $seasons   = Season::all();
     $dossier = Club::where('user_id', $user->id)->first();
@@ -224,93 +238,13 @@ $pricingPlans = PricingPlan::where('activity_id', $complexActivity->activity_id)
         }
     }
 
-    // 🔥 إضافة السعة والجدولة الديناميكية دون تغيير أي شيء آخر
-    $capacity = $complexActivity->capacite ? : 50;
-
-  //   $capacity = ComplexActivity::findOrFail($complexActivityId)->capacite ? : 1;
-    $calendarData = [];
-
-    $startOfWeek = now()->startOfWeek(); 
-    $endOfWeek = now()->endOfWeek();
-// 📌 حجوزات المستخدم نفسه لعرضها في التقويم باللون الأزرق
-    $userReservations = Reservation::where('user_id', $user->id)
-    ->where('complex_activity_id', $complexActivity->id)
-   // ->whereBetween('start_date', [ $seasons ->date_debut, $seasons->date_fin])
-    ->get() 
-    
-    ->map(function($r) {
-        $events = [];
-
-        // 👈 استخراج كل الخانات (الساعات) من JSON
-        $timeSlots= json_decode($r->time_slots, true);
-
-        if (!$timeSlots) return [];
-
-        foreach ($timeSlots as $slot) {
-            $events[] = [
-                'title' => 'محجوز مسبقاً ✔',
-                'start' => $slot['start'],
-                'end'   => $slot['end'],
-                'backgroundColor' => '#0d6efd', // 🔷 أزرق
-                'borderColor' => '#084298',
-                'display' => 'block',
-                'editable' => false,
-                'user_event' => true
-            ];
-        }
-
-        return $events;
-    })
-    ->flatten(1);
-//dd( $userReservations);
-    /*for ($day = $startOfWeek; $day <= $endOfWeek; $day->addDay()) {
-
-        $date = $day->format('Y-m-d');
-
-       // foreach ($schedules as $s) {
-
-            $reserved = Reservation::where('start_date', $date)
-               // ->where('start_date', $date)
-                ->sum('qty_places');
-
-            $percent = ($reserved / $capacity) * 100;
-  
-            if ($percent >= 100) {
-                $color = "#d32f2f";
-                $label = "ممتلئ";
-            } elseif ($percent >= 50) {
-              //  dd($percent );
-                $color = "#ffa000";
-                $label = "متاح بعدد قليل";
-            } else {
-                $color = "#4caf50";
-                $label = "متاح";
-               // dd($percent );
-            }
-
-            $calendarData[] = [
-                //'schedule_id' => $s->id,
-               // 'day_of_week' => $s->day_of_week,
-                'date' => $date,
-               // 'start' => $s->heure_debut,
-                //'end' => $s->heure_fin,
-               // 'color' => $color,
-                'label' => $label,
-            ];
-//dd( $calendarData);
-           
-      //  }
-    }*/
- 
-    // 🔥 تمرير البيانات الجديدة للواجهة دون حذف ما كان موجوداً
-  return view('reservation.form', compact(
-    'complex',
-    'complexActivity',
-    'pricingPlans',
-    'seasons',
-    'activity',
-    'schedules' ,'userReservations'
-));
+    return view('reservation.form', compact(
+        'complex',
+        'complexActivity',
+        'seasons',
+        'activity',
+        'schedules'
+    ));
 
 }
 
@@ -358,66 +292,81 @@ public function store(Request $request)
     $request->validate([
         'complex_activity_id' => 'required|exists:complex_activity,id',
         'season_id' => 'required|exists:seasons,id',
-        'selected_slots' => 'required',
-    ],[
+        'schedule_id' => 'required|exists:schedules,id',
+    ], [
         'complex_activity_id.required' => '⚠ يرجى اختيار مركب ونشاط صحيح.',
         'season_id.required' => '⚠ يرجى اختيار الموسم الرياضي.',
-        'selected_slots.required' => '⚠ يرجى اختيار يوم ووقت واحد على الأقل.',
+        'schedule_id.required' => '⚠ يرجى اختيار جدول زمني للانضمام إليه.',
     ]);
 
     $user = Auth::user();
-    $slots = json_decode($request->selected_slots, true);
 
-    if (!$slots || !is_array($slots) || count($slots) == 0) {
-        return back()->with('error', '⚠ يرجى اختيار يوم ووقت واحد على الأقل.');
+    $complexActivity = ComplexActivity::findOrFail($request->complex_activity_id);
+    $schedule = Schedule::findOrFail($request->schedule_id);
+
+    if ($schedule->complex_activity_id !== $complexActivity->id) {
+        return back()->with('error', '⚠ الجدول المختار لا ينتمي إلى هذا النشاط.');
     }
 
-    // ❗ استخراج أصغر وأكبر تاريخ من التحديد
-    $dates = array_column($slots, 'date');
-    $start_date = min($dates);
-   // $end_date   = max($dates);
-   $season = Season::findOrFail($request->season_id);
-   $end_date = $season->date_fin;
-    // ⚠ التحقق من عدم وجود تضارب مع مستخدم آخر
-    $conflict = Reservation::where('complex_activity_id', $request->complex_activity_id)
-        ->where(function ($q) use ($start_date, $end_date) {
-            $q->whereBetween('start_date', [$start_date, $end_date])
-              ->orWhereBetween('end_date', [$start_date, $end_date]);
-        })
-        ->exists();
+    $season = Season::findOrFail($request->season_id);
 
-    if ($conflict) {
-        return back()->with('error', '⚠ أحد الأوقات المختارة محجوز مسبقاً! 🚫');
+    $slots = is_array($schedule->time_slots) ? $schedule->time_slots : [];
+    $sessionsPerWeek = count($slots);
+
+    if ($schedule->nbr) {
+        $reservedPlaces = Reservation::where('schedule_id', $schedule->id)->sum('qty_places');
+        if ($reservedPlaces >= $schedule->nbr) {
+            return back()->with('error', '⚠ هذا الجدول ممتلئ حالياً.');
+        }
     }
 
-    // حساب الساعات المختارة
-    $duration_hours = count($slots);
+    $pricingPlans = $this->eligiblePricingPlans($complexActivity->activity_id, $user);
+
+    $appliedPlan = null;
+    $totalPrice = null;
+
+    if ($schedule->type_prix === 'pricing_plan') {
+        $appliedPlan = $pricingPlans->first(function ($plan) use ($sessionsPerWeek) {
+            return (int) $plan->sessions_per_week === (int) $sessionsPerWeek;
+        });
+
+        if (!$appliedPlan) {
+            return back()->with('error', '⚠ لا توجد خطة تسعير مطابقة لهذا الجدول.');
+        }
+
+        $totalPrice = $appliedPlan->price;
+    } else {
+        if (!$schedule->price) {
+            return back()->with('error', '⚠ لا يوجد سعر محدد لهذا الجدول.');
+        }
+
+        $totalPrice = $schedule->price;
+    }
 
     Reservation::create([
         'user_id' => $user->id,
-       // 'user_type' => $user->type_client,
-        'complex_activity_id' => $request->complex_activity_id,
+        'complex_activity_id' => $complexActivity->id,
         'season_id' => $request->season_id,
-
-        'start_date' => $start_date,
-        'end_date' => $end_date,
-
-        'time_slots' => json_encode($slots),
-        'duration_hours' => $duration_hours,
-
+        'schedule_id' => $schedule->id,
+        'pricing_plan_id' => $appliedPlan?->id,
+        'start_date' => $season->date_debut,
+        'end_date' => $season->date_fin,
+        'time_slots' => $slots,
+        'duration_hours' => $sessionsPerWeek,
         'qty_places' => 1,
-        'total_price' => 0,
-
+        'total_price' => $totalPrice,
         'statut' => 'en_attente',
         'payment_status' => 'pending'
     ]);
 
-    return match ($user->type) {
+    $redirect = match ($user->type) {
         'admin' => redirect()->route('admin.dashboard'),
         'club'  => redirect()->route('club.dashboard'),
         'company' => redirect()->route('entreprise.dashboard'),
         default => redirect()->route('person.dashboard'),
-    }; with('success', '✔ تم تسجيل الحجز بنجاح وسيتم مراجعته من الإدارة.');
+    };
+
+    return $redirect->with('success', '✔ تم تسجيل الحجز بنجاح وسيتم مراجعته من الإدارة.');
 }
 
 
@@ -426,5 +375,25 @@ public function store(Request $request)
     {
         $reservations = Reservation::where('user_id', auth()->id())->get();
         return view('reservation.my_reservations', compact('reservations'));
+    }
+
+    private function eligiblePricingPlans($activityId, $user)
+    {
+        return PricingPlan::where('activity_id', $activityId)
+            ->where('active', 1)
+            ->whereDate('valid_from', '<=', now())
+            ->where(function ($query) {
+                $query->whereNull('valid_to')
+                      ->orWhereDate('valid_to', '>=', now());
+            })
+            ->where(function ($query) use ($user) {
+                if ($user->type === 'person') {
+                    $query->where('type_client', 'person')
+                          ->where('age_category_id', optional($user->person)->age_category_id);
+                } else {
+                    $query->where('type_client', 'club');
+                }
+            })
+            ->get();
     }
 }

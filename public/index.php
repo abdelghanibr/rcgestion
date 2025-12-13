@@ -15,10 +15,9 @@ define('LARAVEL_START', microtime(true));
 | instead of starting the framework, which could cause an exception.
 |
 */
-require __DIR__.'/../../../opowmila43/rcgestion/vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
-
-$app = require_once __DIR__.'/../../../opowmila43/rcgestion/bootstrap/app.php';
+$app = require_once __DIR__.'/../bootstrap/app.php';
 
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
     require $maintenance;
