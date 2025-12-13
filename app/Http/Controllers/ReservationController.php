@@ -4,20 +4,64 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Complex;
-
+use App\Models\Reservation;
+use App\Models\Activity;
+use App\Models\Season;
 
 use App\Models\Person;
 use App\Models\Dossier;
 use App\Models\club;
-use App\Models\Reservation;
+
 use App\Models\ComplexActivity;
 use App\Models\Schedule;
-use App\Models\Season;
+
 use Illuminate\Support\Facades\DB;
 use App\Models\PricingPlan;
 
 class ReservationController extends Controller
 {
+
+public function index()
+{
+    $user = auth()->user();
+
+    $reservations = Reservation::with([
+            'complexActivity.complex',
+            'complexActivity.activity',
+            'season'
+        ])
+        ->where('user_id', $user->id)
+       
+        ->get();
+
+    $activities = Activity::orderBy('title')->get();
+    $seasons    = Season::orderBy('name')->get();
+
+    return view('reservation.my_reservations', compact(
+        'reservations',
+        'activities',
+        'seasons'
+    ));
+}
+     public function create()
+    {
+        return view('reservations.create');
+    }
+
+    /**
+     * تجديد حجز (نفس النشاط و الخطة)
+     */
+    public function renew($id)
+    {
+        $reservation = Reservation::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
+        return view('reservations.renew', compact('reservation'));
+    }
+
+
+
     // 1) اختيار نوع المركب
     public function selectType()
     {
@@ -270,6 +314,42 @@ $pricingPlans = PricingPlan::where('activity_id', $complexActivity->activity_id)
 
 }
 
+public function renewStore(Request $request, Reservation $reservation)
+{
+    $request->validate([
+        'start_date' => 'required|date|after_or_equal:today',
+        'end_date'   => 'required|date|after:start_date',
+    ]);
+
+    // حساب عدد الأيام
+    $days = \Carbon\Carbon::parse($request->start_date)
+        ->diffInDays(\Carbon\Carbon::parse($request->end_date)) + 1;
+
+    // حساب السعر (مثال بسيط)
+    $pricePerDay = $reservation->total_price /
+                   max(1, $reservation->duration_hours);
+
+    $newPrice = $days * $pricePerDay;
+
+    // إنشاء حجز جديد (clone)
+    $newReservation = $reservation->replicate([
+        'status',
+        'payment_status'
+    ]);
+
+    $newReservation->start_date = $request->start_date;
+    $newReservation->end_date   = $request->end_date;
+    $newReservation->total_price = round($newPrice);
+    $newReservation->status = 'pending';
+    $newReservation->payment_status =
+        $request->pay_now ? 'paid' : 'unpaid';
+
+    $newReservation->save();
+
+    return redirect()
+        ->route('reservations.index')
+        ->with('success', '✅ تم تجديد الحجز بنجاح');
+}
 
 
     // 4) تنفيذ الحجز

@@ -384,7 +384,7 @@ Route::delete('/activities/{id}', [ActivityController::class, 'destroy'])->name(
 
 
     // تسجيل في نشاط معين
-  Route::middleware('auth')->group(function () {
+
     Route::get('/activities', [App\Http\Controllers\ActivityController::class, 'index'])
         ->name('activities.index');
 
@@ -392,11 +392,8 @@ Route::delete('/activities/{id}', [ActivityController::class, 'destroy'])->name(
     [App\Http\Controllers\ActivityController::class, 'complexes'])
     ->name('activities.complexes');
 
-    Route::get('/reservations/availability/{id}', 
-    [ReservationController::class, 'availability'])
-    ->name('reservations.availability');
 
-});
+
 
 
 
@@ -418,6 +415,28 @@ Route::delete('/activities/{id}', [ActivityController::class, 'destroy'])->name(
     | RESERVATIONS
     |--------------------------------------------------------------------------
     */
+
+
+    Route::get('/my-reservations', [ReservationController::class, 'index'])
+        ->name('reservation.my-reservations');
+
+    Route::get('/reservations/create', [ReservationController::class, 'create'])
+        ->name('reservation.create');
+
+    Route::get('/reservations/{id}/renew', [ReservationController::class, 'renew'])
+        ->name('reservation.renew');
+
+        Route::post(
+    '/reservations/{reservation}/renew',
+    [ReservationController::class, 'renewStore']
+)->name('reservations.renew.store');
+
+
+
+
+
+
+
 Route::get('/my-activities', function () {
         return view('activities.my');
     })->name('my.activities');
@@ -447,7 +466,5 @@ Route::get('/my-activities', function () {
     Route::get('/reservations/pay-online/{id}', [PaymentController::class, 'payOnline'])
         ->name('reservation.pay_online');
 
-    // Mes réservations
-    Route::get('/my-reservations', [ReservationController::class, 'myReservations'])
-        ->name('reservation.my_reservations');
+
 });

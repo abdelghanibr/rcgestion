@@ -68,6 +68,13 @@
                 <a href="#" class="btn btn-main btn-sm">تعديل المعلومات</a>
             </div>
         </div>
+          <div class="col-md-4">
+            <div class="dash-card">
+                <h5>🎟️ حجوزاتي</h5>
+                <p class="text-muted">عرض وتتبع حجوزاتك</p>
+                <a href="{{ route('reservation.my-reservations') }}" class="btn btn-main btn-sm">عرض الحجوزات</a>
+            </div>
+        </div>
 
     </div>
 @if($dossier)

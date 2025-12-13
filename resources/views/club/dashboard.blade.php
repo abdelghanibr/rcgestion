@@ -67,7 +67,7 @@
             <div class="dash-card">
                 <h5>🎟️ الحجوزات</h5>
                 <p class="text-muted">إدارة حجوزات القاعات والملاعب</p>
-                <a href="#" class="btn btn-main btn-sm">عرض الحجوزات</a>
+                <a href="{{ route('reservation.my-reservations') }}" class="btn btn-main btn-sm">عرض الحجوزات</a>
             </div>
         </div>
 

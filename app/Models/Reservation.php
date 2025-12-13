@@ -57,5 +57,15 @@ class Reservation extends Model
 {
     return $this->belongsTo(PricingPlan::class, 'pricing_plan_id');
 }
+public function complex()
+{
+    return $this->belongsTo(Complex::class);
+}
+
+public function activity()
+{
+    return $this->belongsTo(Activity::class);
+}
+
 
 }
