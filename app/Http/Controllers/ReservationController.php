@@ -1,8 +1,10 @@
 <?php
 
 namespace App\Http\Controllers;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use App\Models\Complex;
 use App\Models\Reservation;
 use App\Models\Activity;
@@ -152,41 +154,42 @@ public function availability($complexActivityId)
                     ->where('complex_id', $id)
                     ->firstOrFail();
 
-    $pricingPlans = $this->eligiblePricingPlans($complexActivity->activity_id, $user);
+    $person = $user->type === 'person'
+        ? Person::where('user_id', $user->id)->with('ageCategory')->first()
+        : null;
 
-    $schedules = Schedule::with('ageCategory')
-        ->where('complex_activity_id', $complexActivity->id)
+    $ageCategoryId = $person?->age_category_id;
+    $genderCode = $this->normalizeGender($person?->gender);
+
+    $pricingPlans = $this->eligiblePricingPlans(
+        $complexActivity->activity_id,
+        $user,
+        $ageCategoryId,
+        $genderCode
+    );
+
+    $scheduleQuery = Schedule::with('ageCategory')
+        ->where('complex_activity_id', $complexActivity->id);
+
+    if ($ageCategoryId) {
+        $scheduleQuery->where(function ($query) use ($ageCategoryId) {
+            $query->whereNull('age_category_id')
+                  ->orWhere('age_category_id', $ageCategoryId);
+        });
+    }
+
+    if ($genderCode) {
+        $scheduleQuery->where(function ($query) use ($genderCode) {
+            $query->whereNull('sex')
+                  ->orWhere('sex', 'X')
+                  ->orWhere('sex', $genderCode);
+        });
+    }
+
+    $schedules = $scheduleQuery
         ->get()
         ->map(function ($schedule) use ($pricingPlans) {
-            $slots = is_array($schedule->time_slots) ? $schedule->time_slots : [];
-            $sessionsCount = count($slots);
-
-            $formattedSlots = collect($slots)->map(function ($slot) {
-                $dayIndex = $slot['day_number'] ?? null;
-                $dayLabel = $dayIndex !== null ? (self::DAY_LABELS[$dayIndex] ?? 'يوم غير معروف') : 'يوم غير معروف';
-
-                $start = $slot['start'] ?? null;
-                $end   = $slot['end'] ?? null;
-
-                return trim($dayLabel . ' | ' . ($start ?? '?') . ' → ' . ($end ?? '?'));
-            })->toArray();
-
-            $schedule->sessions_count = $sessionsCount;
-            $schedule->formatted_slots = $formattedSlots;
-
-            if ($schedule->type_prix === 'pricing_plan') {
-                $matchedPlan = $pricingPlans->first(function ($plan) use ($sessionsCount) {
-                    return (int) $plan->sessions_per_week === (int) $sessionsCount;
-                });
-
-                $schedule->applied_plan = $matchedPlan;
-                $schedule->calculated_price = $matchedPlan?->price;
-            } else {
-                $schedule->applied_plan = null;
-                $schedule->calculated_price = $schedule->price;
-            }
-
-            return $schedule;
+            return $this->decorateScheduleForDisplay($schedule, $pricingPlans);
         });
 
     if ($schedules->isNotEmpty()) {
@@ -310,7 +313,18 @@ public function store(Request $request)
 
     $season = Season::findOrFail($request->season_id);
 
-    $slots = is_array($schedule->time_slots) ? $schedule->time_slots : [];
+    $person = $user->type === 'person'
+        ? Person::where('user_id', $user->id)->first()
+        : null;
+
+    $ageCategoryId = $person?->age_category_id;
+    $genderCode = $this->normalizeGender($person?->gender);
+
+    if (!$this->scheduleMatchesUserProfile($schedule, $ageCategoryId, $genderCode)) {
+        return back()->with('error', '⚠ هذا الجدول غير متاح لبياناتك الشخصية.');
+    }
+
+    $slots = $this->decodeScheduleSlots($schedule);
     $sessionsPerWeek = count($slots);
 
     if ($schedule->nbr) {
@@ -320,27 +334,30 @@ public function store(Request $request)
         }
     }
 
-    $pricingPlans = $this->eligiblePricingPlans($complexActivity->activity_id, $user);
+    $pricingPlans = $this->eligiblePricingPlans(
+        $complexActivity->activity_id,
+        $user,
+        $ageCategoryId,
+        $genderCode
+    );
 
     $appliedPlan = null;
     $totalPrice = null;
 
     if ($schedule->type_prix === 'pricing_plan') {
-        $appliedPlan = $pricingPlans->first(function ($plan) use ($sessionsPerWeek) {
-            return (int) $plan->sessions_per_week === (int) $sessionsPerWeek;
-        });
+        $appliedPlan = $this->matchPlanForSchedule($schedule, $pricingPlans, $sessionsPerWeek);
 
         if (!$appliedPlan) {
             return back()->with('error', '⚠ لا توجد خطة تسعير مطابقة لهذا الجدول.');
         }
 
-        $totalPrice = $appliedPlan->price;
+        $totalPrice = $this->calculateSchedulePrice($schedule, $season, $appliedPlan, $sessionsPerWeek);
     } else {
         if (!$schedule->price) {
             return back()->with('error', '⚠ لا يوجد سعر محدد لهذا الجدول.');
         }
 
-        $totalPrice = $schedule->price;
+        $totalPrice = $this->calculateFixedSchedulePrice($schedule, $season);
     }
 
     Reservation::create([
@@ -377,23 +394,192 @@ public function store(Request $request)
         return view('reservation.my_reservations', compact('reservations'));
     }
 
-    private function eligiblePricingPlans($activityId, $user)
+    private function eligiblePricingPlans($activityId, $user, ?int $ageCategoryId = null, ?string $gender = null)
     {
+        $typeClient = match ($user->type) {
+            'club' => 'club',
+            'company' => 'company',
+            default => 'person',
+        };
+
         return PricingPlan::where('activity_id', $activityId)
             ->where('active', 1)
+            ->where('type_client', $typeClient)
             ->whereDate('valid_from', '<=', now())
             ->where(function ($query) {
                 $query->whereNull('valid_to')
                       ->orWhereDate('valid_to', '>=', now());
             })
-            ->where(function ($query) use ($user) {
-                if ($user->type === 'person') {
-                    $query->where('type_client', 'person')
-                          ->where('age_category_id', optional($user->person)->age_category_id);
-                } else {
-                    $query->where('type_client', 'club');
-                }
+            ->when($ageCategoryId, function ($query) use ($ageCategoryId) {
+                $query->where(function ($q) use ($ageCategoryId) {
+                    $q->whereNull('age_category_id')
+                      ->orWhere('age_category_id', $ageCategoryId);
+                });
+            })
+            ->when($gender, function ($query) use ($gender) {
+                $query->where(function ($q) use ($gender) {
+                    $q->whereNull('sexe')
+                      ->orWhere('sexe', $gender);
+                });
             })
             ->get();
+    }
+
+    private function normalizeGender(?string $value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        $value = strtolower(trim($value));
+
+        return match (true) {
+            in_array($value, ['h', 'homme', 'male', 'm']) => 'H',
+            in_array($value, ['f', 'femme', 'female']) => 'F',
+            default => null,
+        };
+    }
+
+    private function scheduleMatchesUserProfile(Schedule $schedule, ?int $ageCategoryId, ?string $gender): bool
+    {
+        if ($ageCategoryId && $schedule->age_category_id && (int) $schedule->age_category_id !== (int) $ageCategoryId) {
+            return false;
+        }
+
+        if ($gender && $schedule->sex && $schedule->sex !== 'X' && strtoupper($schedule->sex) !== $gender) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function decodeScheduleSlots(Schedule $schedule): array
+    {
+        $slots = $schedule->time_slots;
+
+        if (is_string($slots)) {
+            $decoded = json_decode($slots, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $decoded ?: [];
+            }
+            return [];
+        }
+
+        return $slots ?: [];
+    }
+
+    private function decorateScheduleForDisplay(Schedule $schedule, Collection $pricingPlans): Schedule
+    {
+        $slots = $this->decodeScheduleSlots($schedule);
+        $sessionsCount = count($slots);
+
+        $schedule->sessions_count = $sessionsCount;
+        $schedule->formatted_slots = collect($slots)->map(function ($slot) {
+            $dayIndex = $slot['day_number'] ?? null;
+            $dayLabel = $dayIndex !== null ? (self::DAY_LABELS[$dayIndex] ?? 'يوم غير معروف') : 'يوم غير معروف';
+
+            $start = $slot['start'] ?? null;
+            $end   = $slot['end'] ?? null;
+
+            return trim($dayLabel . ' | ' . ($start ?? '?') . ' → ' . ($end ?? '?'));
+        })->toArray();
+
+        if ($schedule->type_prix === 'pricing_plan') {
+            $matchedPlan = $this->matchPlanForSchedule($schedule, $pricingPlans, $sessionsCount);
+            $schedule->applied_plan = $matchedPlan;
+            $schedule->calculated_price = $matchedPlan?->price;
+            $schedule->pricing_note = $matchedPlan ? $this->pricingUnitLabel($matchedPlan) : null;
+        } else {
+            $schedule->applied_plan = null;
+            $schedule->calculated_price = $schedule->price;
+            $schedule->pricing_note = 'سعر ثابت';
+        }
+
+        return $schedule;
+    }
+
+    private function matchPlanForSchedule(Schedule $schedule, Collection $pricingPlans, int $sessionsPerWeek)
+    {
+        return $pricingPlans->first(function ($plan) use ($schedule, $sessionsPerWeek) {
+            if ((int) $plan->sessions_per_week !== $sessionsPerWeek) {
+                return false;
+            }
+
+            if ($schedule->age_category_id && $plan->age_category_id && (int) $plan->age_category_id !== (int) $schedule->age_category_id) {
+                return false;
+            }
+
+            $scheduleSex = $schedule->sex ? strtoupper($schedule->sex) : 'X';
+            if ($plan->sexe && $scheduleSex !== 'X' && strtoupper($plan->sexe) !== $scheduleSex) {
+                return false;
+            }
+
+            return true;
+        });
+    }
+
+    private function pricingUnitLabel(?PricingPlan $plan): ?string
+    {
+        if (!$plan) {
+            return null;
+        }
+
+        $unit = strtolower($plan->duration_unit ?? $plan->pricing_type ?? '');
+
+        return match ($unit) {
+            'monthly', 'month' => 'السعر لكل شهر',
+            'weekly', 'week' => 'السعر لكل أسبوع',
+            'session' => 'السعر لكل حصة',
+            'ticket' => 'سعر التذكرة',
+            default => 'سعر الخطة',
+        };
+    }
+
+    private function calculateSchedulePrice(Schedule $schedule, Season $season, PricingPlan $plan, int $sessionsPerWeek): float
+    {
+        if ($schedule->type_prix !== 'pricing_plan') {
+            return $this->calculateFixedSchedulePrice($schedule, $season);
+        }
+
+        return $this->calculatePlanPrice($plan, $season, $sessionsPerWeek);
+    }
+
+    private function calculateFixedSchedulePrice(Schedule $schedule, Season $season): float
+    {
+        $basePrice = (float) $schedule->price;
+        $start = Carbon::parse($season->date_debut);
+        $end = Carbon::parse($season->date_fin);
+
+        $monthsBetween = $start->diffInMonths($end);
+
+        if ($end->day >= $start->day || $monthsBetween === 0) {
+            $monthsBetween += 1;
+        }
+
+        $months = max(1, $monthsBetween);
+        $monthsCharged = min(12, $months);
+
+        return $basePrice * $monthsCharged;
+    }
+
+    private function calculatePlanPrice(PricingPlan $plan, Season $season, int $sessionsPerWeek): float
+    {
+        $start = Carbon::parse($season->date_debut);
+        $end = Carbon::parse($season->date_fin);
+        $unit = strtolower($plan->duration_unit ?? $plan->pricing_type ?? 'season');
+        $durationValue = max(1, (int) ($plan->duration_value ?? 1));
+        $basePrice = (float) $plan->price;
+
+        $days = $start->diffInDays($end) + 1;
+        $weeks = max(1, (int) ceil($days / 7));
+        $months = max(1, (int) ceil($days / 30));
+
+        return match ($unit) {
+            'month', 'monthly' => ceil($months / $durationValue) * $basePrice,
+            'week', 'weekly' => ceil($weeks / $durationValue) * $basePrice,
+            'session' => $weeks * max(1, $plan->sessions_per_week ?? $sessionsPerWeek) * $basePrice,
+            'ticket' => $basePrice,
+            default => $basePrice,
+        };
     }
 }

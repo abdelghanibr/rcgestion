@@ -78,10 +78,14 @@
 
                 <div class="col-md-6 mb-3">
                     <label class="fw-bold">📅 الموسم</label>
-                    <select class="form-select" name="season_id" required>
-                        <option disabled selected>اختر موسماً</option>
+                    <select class="form-select" name="season_id" id="season_select" required>
+                        <option value="" disabled selected>اختر موسماً</option>
                         @foreach($seasons as $season)
-                            <option value="{{ $season->id }}">{{ $season->name }}</option>
+                            <option value="{{ $season->id }}"
+                                    data-start="{{ $season->date_debut }}"
+                                    data-end="{{ $season->date_fin }}">
+                                {{ $season->name }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
@@ -105,7 +109,15 @@
                     @foreach($schedules as $schedule)
                         @php
                             $plan = $schedule->applied_plan;
-                            $planDuration = $plan ? $plan->duration_value . ' ' . ($plan->duration_unit === 'month' ? 'شهر' : 'موسم') : '';
+                            $planDurationUnit = optional($plan)->duration_unit;
+                            $planUnit = match ($planDurationUnit) {
+                                'month', 'monthly' => 'شهر',
+                                'week', 'weekly' => 'أسبوع',
+                                'season' => 'موسم',
+                                default => $planDurationUnit
+                            };
+                            $planDurationValue = optional($plan)->duration_value ?? 1;
+                            $planDuration = $plan ? trim($planDurationValue . ' ' . ($planUnit ?: 'فترة')) : '';
                             $isPlan = $schedule->type_prix === 'pricing_plan';
                             $planUnavailable = $isPlan && !$plan;
                             $hasPrice = !is_null($schedule->calculated_price);
@@ -127,11 +139,16 @@
                                            {{ $isDisabled ? 'disabled' : '' }}
                                            data-type-prix="{{ $schedule->type_prix }}"
                                            data-price="{{ $schedule->calculated_price ?? '' }}"
-                                           data-plan-id="{{ $plan->id ?? '' }}"
-                                           data-plan-name="{{ $plan->name ?? '' }}"
-                                           data-plan-type="{{ $plan->pricing_type ?? '' }}"
-                                           data-plan-duration="{{ $planDuration }}"
-                                           data-sessions="{{ $schedule->sessions_count }}">
+                                                                                     data-plan-id="{{ $plan?->id ?? '' }}"
+                                                                                     data-plan-name="{{ $plan?->name ?? '' }}"
+                                                                                 data-plan-type="{{ $plan?->pricing_type ?? '' }}"
+                                                                                 data-plan-pricing-type="{{ $plan?->pricing_type ?? '' }}"
+                                         data-plan-duration="{{ $planDuration }}"
+                                                                                 data-plan-duration-unit="{{ $plan?->duration_unit ?? '' }}"
+                                                                                 data-plan-duration-value="{{ $plan?->duration_value ?? '' }}"
+                                                                                 data-plan-sessions="{{ $plan?->sessions_per_week ?? $schedule->sessions_count }}"
+                                         data-sessions="{{ $schedule->sessions_count }}"
+                                         data-pricing-note="{{ $schedule->pricing_note ?? '' }}">
                                 </div>
 
                                 <div class="flex-grow-1 w-100">
@@ -179,9 +196,12 @@
                                     </span>
                                     <div class="small mt-2">
                                         @if($isPlan)
-                                            خطة: {{ $plan->name ?? 'غير متاحة' }}
+                                            خطة: {{ $plan?->name ?? 'غير متاحة' }}
                                         @else
                                             تسعيرة ثابتة
+                                        @endif
+                                        @if($schedule->pricing_note)
+                                            <div class="text-muted">{{ $schedule->pricing_note }}</div>
                                         @endif
                                     </div>
                                 </div>
@@ -229,6 +249,7 @@
                    id="total_price"
                    class="form-control bg-light text-center fw-bold fs-5 mb-3"
                    readonly>
+            <p class="text-muted small mb-3" id="price_hint"></p>
 
             <button class="btn btn-success w-100 fs-5 fw-bold" {{ $hasSchedules ? '' : 'disabled' }}>
                 ✔ تأكيد الحجز
@@ -291,6 +312,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const scheduleRadios = Array.from(document.querySelectorAll('.schedule-radio'));
     const totalPriceInput = document.getElementById('total_price');
+    const priceHint = document.getElementById('price_hint');
+    const seasonSelect = document.getElementById('season_select');
     const pricingPlanInput = document.getElementById('pricing_plan_id');
     const pricingCard = document.getElementById('pricingCard');
     const planName = document.getElementById('plan_name');
@@ -298,6 +321,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const planHours = document.getElementById('plan_hours');
     const planPrice = document.getElementById('plan_price');
     const planDuration = document.getElementById('plan_duration');
+
+    const isFiniteNumber = (value) => Number.isFinite(value) && value >= 0;
 
     const formatPrice = (value) => {
         if (!value || isNaN(value)) {
@@ -322,26 +347,172 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    const updateSelection = (radio) => {
-        const price = radio.dataset.price;
+    const getSelectedSeason = () => {
+        if (!seasonSelect) {
+            return null;
+        }
+        const selectedOption = seasonSelect.options[seasonSelect.selectedIndex];
+        if (!selectedOption || !selectedOption.dataset.start || !selectedOption.dataset.end) {
+            return null;
+        }
+        return {
+            id: selectedOption.value,
+            name: selectedOption.text,
+            start: selectedOption.dataset.start,
+            end: selectedOption.dataset.end
+        };
+    };
+
+    const getSeasonMetrics = (season) => {
+        if (!season?.start || !season?.end) {
+            return null;
+        }
+
+        const startDate = new Date(season.start);
+        const endDate = new Date(season.end);
+
+        if (Number.isNaN(startDate) || Number.isNaN(endDate) || endDate < startDate) {
+            return null;
+        }
+
+        const diffMs = endDate.getTime() - startDate.getTime();
+        const days = Math.max(1, Math.round(diffMs / 86400000) + 1);
+
+        let months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+        if (endDate.getDate() >= startDate.getDate() || months === 0) {
+            months += 1;
+        }
+        months = Math.max(1, months);
+        const monthsCharged = Math.min(12, months);
+
+        const weeks = Math.max(1, Math.ceil(days / 7));
+
+        return {
+            ...season,
+            startDate,
+            endDate,
+            days,
+            weeks,
+            months,
+            monthsCharged
+        };
+    };
+
+    const calculatePlanPrice = (plan, seasonMetrics) => {
+        if (!plan || !seasonMetrics) {
+            return null;
+        }
+
+        const { weeks, months } = seasonMetrics;
+        const durationValue = plan.durationValue > 0 ? plan.durationValue : 1;
+        const basePrice = plan.price;
+        const type = (plan.durationUnit || plan.pricingType || '').toLowerCase();
+
+        switch (type) {
+            case 'month':
+            case 'monthly':
+                return Math.ceil(months / durationValue) * basePrice;
+            case 'week':
+            case 'weekly':
+                return Math.ceil(weeks / durationValue) * basePrice;
+            case 'session':
+                return weeks * (plan.sessionsPerWeek || 1) * basePrice;
+            case 'ticket':
+            default:
+                return basePrice;
+        }
+    };
+
+    const calculateFixedSchedulePrice = (basePrice, seasonMetrics) => {
+        if (!seasonMetrics) {
+            return null;
+        }
+
+        const multiplier = seasonMetrics.monthsCharged ?? seasonMetrics.months ?? 1;
+        return Math.max(1, multiplier) * basePrice;
+    };
+
+    const updatePlanCard = (radio) => {
         const typePrix = radio.dataset.typePrix;
-
-        totalPriceInput.value = price ? formatPrice(price) : '';
         pricingPlanInput.value = radio.dataset.planId || '';
-
         highlightOption(radio);
 
         if (typePrix === 'pricing_plan') {
             planName.textContent = radio.dataset.planName || '-';
             planType.textContent = radio.dataset.planType || '-';
             planHours.textContent = (radio.dataset.sessions || '0') + ' حصة / الأسبوع';
-            planPrice.textContent = price ? formatPrice(price) : '-';
+            planPrice.textContent = '-';
             planDuration.textContent = radio.dataset.planDuration || '-';
             pricingCard.style.display = 'block';
         } else {
             resetPlanCard();
             pricingCard.style.display = 'none';
         }
+    };
+
+    const updateTotals = () => {
+        const selectedRadio = document.querySelector('input.schedule-radio:checked');
+        if (!selectedRadio) {
+            totalPriceInput.value = '';
+            if (priceHint) {
+                priceHint.textContent = '';
+            }
+            return;
+        }
+
+        const typePrix = selectedRadio.dataset.typePrix;
+        const rawPrice = (selectedRadio.dataset.price ?? '').toString();
+        const parsedPrice = parseFloat(rawPrice.replace(',', '.'));
+        const basePrice = Number.isFinite(parsedPrice) ? parsedPrice : 0;
+        const season = getSelectedSeason();
+        const seasonMetrics = season ? getSeasonMetrics(season) : null;
+        let computedPrice = null;
+        let hintMessage = '';
+
+        if (typePrix === 'pricing_plan') {
+            if (!seasonMetrics) {
+                hintMessage = 'اختر الموسم لحساب التكلفة الفعلية لهذه الخطة.';
+            } else {
+                computedPrice = calculatePlanPrice({
+                    price: basePrice,
+                    durationUnit: selectedRadio.dataset.planDurationUnit,
+                    durationValue: parseInt(selectedRadio.dataset.planDurationValue || '1', 10),
+                    pricingType: selectedRadio.dataset.planPricingType || selectedRadio.dataset.planType,
+                    sessionsPerWeek: parseInt(selectedRadio.dataset.planSessions || selectedRadio.dataset.sessions || '1', 10)
+                }, seasonMetrics);
+
+                if (isFiniteNumber(computedPrice)) {
+                    hintMessage = `التكلفة مقدّرة للفترة ${seasonMetrics.start} → ${seasonMetrics.end}.`;
+                }
+            }
+        } else {
+            if (!seasonMetrics) {
+                hintMessage = 'اختر الموسم لحساب التكلفة الإجمالية لهذا الجدول.';
+            } else {
+                computedPrice = calculateFixedSchedulePrice(basePrice, seasonMetrics);
+                const multiplier = seasonMetrics.monthsCharged ?? seasonMetrics.months ?? 1;
+                const monthsLabel = multiplier >= 12
+                    ? 'اشتراك سنوي (12 شهر)'
+                    : `اشتراك ${multiplier} شهر`;
+                hintMessage = `${monthsLabel}: ${multiplier} × السعر الشهري.`;
+            }
+        }
+
+        const appliedPrice = isFiniteNumber(computedPrice) ? computedPrice : null;
+
+        totalPriceInput.value = isFiniteNumber(appliedPrice) ? formatPrice(appliedPrice) : '';
+        if (priceHint) {
+            priceHint.textContent = hintMessage;
+        }
+
+        if (pricingCard && pricingCard.style.display !== 'none' && planPrice) {
+            planPrice.textContent = isFiniteNumber(appliedPrice) ? formatPrice(appliedPrice) : '-';
+        }
+    };
+
+    const updateSelection = (radio) => {
+        updatePlanCard(radio);
+        updateTotals();
     };
 
     if (!scheduleRadios.length) {
@@ -360,6 +531,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (firstEnabled) {
         firstEnabled.checked = true;
         updateSelection(firstEnabled);
+    } else if (priceHint) {
+        priceHint.textContent = 'لا توجد جداول متاحة حالياً.';
+    }
+
+    if (seasonSelect) {
+        seasonSelect.addEventListener('change', updateTotals);
     }
 
     form.addEventListener('submit', function (e) {
@@ -367,6 +544,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!selectedSchedule) {
             e.preventDefault();
             alert('⚠ يرجى اختيار جدول قبل تأكيد الحجز.');
+            return;
+        }
+
+        if (selectedSchedule.dataset.typePrix === 'pricing_plan') {
+            const season = getSelectedSeason();
+            if (!season) {
+                e.preventDefault();
+                alert('⚠ يرجى اختيار الموسم لحساب سعر الخطة.');
+            }
         }
     });
 });
