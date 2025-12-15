@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\ActivitysController;
 use App\Http\Controllers\Admin\PricingsPlanController ;
 use App\Http\Controllers\Admin\capacityController ;
 use App\Http\Controllers\Admin\ScheduleController ;
+use App\Http\Controllers\Admin\AgeCategoryController;
 
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\ClubAuthController;
@@ -312,6 +313,7 @@ Route::delete('/admin/capacities/{id}', [CapacityController::class, 'destroy'])
     Route::delete('/admin/pricing/{id}', [PricingsPlanController::class, 'destroy'])->name('admin.pricing_plans.destroy');
 
 
+    Route::resource('/admin/age-categories', AgeCategoryController::class);
  Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])
     ->middleware('auth')
     ->name('admin.dashboard');
@@ -425,6 +427,11 @@ Route::delete('/activities/{id}', [ActivityController::class, 'destroy'])->name(
 
     Route::get('/reservations/{id}/renew', [ReservationController::class, 'renew'])
         ->name('reservation.renew');
+
+        Route::delete('/reservations/{reservation}', 
+    [ReservationController::class, 'destroy']
+)->name('reservations.destroy');
+
 
         Route::post(
     '/reservations/{reservation}/renew',

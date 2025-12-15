@@ -57,7 +57,7 @@
 
         <label class="form-label">الجنس</label>
         <select name="sexe" class="form-control mb-3">
-            <option value="H">مختلط</option>
+            <option value="X">مختلط</option>
             <option value="H">ذكور</option>
             <option value="F">إناث</option>
         </select>

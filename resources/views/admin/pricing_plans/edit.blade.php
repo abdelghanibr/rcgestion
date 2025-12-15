@@ -73,6 +73,8 @@
         <select name="sexe" class="form-control mb-3" required>
             <option value="H" {{ $plan->sexe=='H' ? 'selected' : '' }}>ذكور</option>
             <option value="F" {{ $plan->sexe=='F' ? 'selected' : '' }}>إناث</option>
+             <option value="X" {{ $plan->sexe=='X' ? 'selected' : '' }}>مختلط</option>
+            
         </select>
 
         {{-- نوع العميل --}}

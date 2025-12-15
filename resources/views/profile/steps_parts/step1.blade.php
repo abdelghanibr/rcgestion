@@ -39,25 +39,26 @@
         </div>
 
         <!-- الجنس -->
-        <div class="col-md-6 mb-3">
-            <label class="form-label d-block">الجنس</label>
+      <div class="col-md-6 mb-3">
+    <label class="form-label d-block">الجنس</label>
 
-            <label class="ms-3">
-                <input type="radio" name="gender" value="ذكر"
-                       {{ old('gender', $person->gender ?? '') == "ذكر" ? 'checked' : '' }}>
-                ذكر
-            </label>
+    <label class="ms-3">
+        <input type="radio" name="gender" value="H"
+               {{ old('gender', $person->gender ?? '') == 'H' ? 'checked' : '' }}>
+        ذكر
+    </label>
 
-            <label class="ms-3">
-                <input type="radio" name="gender" value="أنثى"
-                       {{ old('gender', $person->gender ?? '') == "أنثى" ? 'checked' : '' }}>
-                أنثى
-            </label>
+    <label class="ms-3">
+        <input type="radio" name="gender" value="F"
+               {{ old('gender', $person->gender ?? '') == 'F' ? 'checked' : '' }}>
+        أنثى
+    </label>
 
-            @error('gender')
-                <div class="form-error text-danger small">{{ $message }}</div>
-            @enderror
-        </div>
+    @error('gender')
+        <div class="form-error text-danger small">{{ $message }}</div>
+    @enderror
+</div>
+
 
         <!-- احتياجات خاصة -->
         <div class="col-md-6 mb-3">

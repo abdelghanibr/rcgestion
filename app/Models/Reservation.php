@@ -67,5 +67,21 @@ public function activity()
     return $this->belongsTo(Activity::class);
 }
 
-
+public function schedule()
+{
+    return $this->belongsTo(Schedule::class);
+}
+public function getDayName($dayNumber)
+{
+    return match ($dayNumber) {
+        1 => 'الإثنين',
+        2 => 'الثلاثاء',
+        3 => 'الأربعاء',
+        4 => 'الخميس',
+        5 => 'الجمعة',
+        6 => 'السبت',
+        7 => 'الأحد',
+        default => 'غير معروف',
+    };
+}
 }

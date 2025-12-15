@@ -78,6 +78,7 @@
                     <th>من</th>
                     <th>إلى</th>
                     <th>الساعات</th>
+                    <th>الأيام / الساعات</th>
                     <th>السعر</th>
                     <th>الحالة</th>
                     <th>الدفع</th>
@@ -98,6 +99,25 @@
                     <td>{{ $r->end_date?->format('Y-m-d') }}</td>
 
                     <td>{{ $r->duration_hours ?? '—' }}</td>
+
+
+<td>
+    @php
+        $slots = $r->time_slots;
+        if (isset($slots['day_number'])) {
+            $slots = [$slots]; // تحويل object → array
+        }
+    @endphp
+
+    @foreach($slots ?? [] as $slot)
+        <div class="bg-light border rounded px-2 py-1 mb-1">
+            {{ $r->getDayName($slot['day_number']) }} :
+            {{ $slot['start'] }} → {{ $slot['end'] }}
+        </div>
+    @endforeach
+</td>
+
+
 
                     <td>{{ number_format($r->total_price ?? 0) }} دج</td>
 
@@ -124,6 +144,15 @@
                                 data-bs-target="#renewModal{{ $r->id }}">
                             🔁 تجديد
                         </button>
+                        <form action="{{ route('reservations.destroy', $r->id) }}"
+          method="POST"
+          onsubmit="return confirm('هل أنت متأكد من حذف هذا الحجز؟');">
+        @csrf
+        @method('DELETE')
+        <button class="btn btn-sm btn-danger">
+            🗑️
+        </button>
+    </form>
                     </td>
                 </tr>
 
@@ -179,6 +208,7 @@
                                     </div>
 
                                 </div>
+
 
                                 <div class="modal-footer">
                                     <button class="btn btn-secondary" data-bs-dismiss="modal">

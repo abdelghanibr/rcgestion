@@ -108,20 +108,20 @@
                 <div class="d-flex flex-column gap-3">
                     @foreach($schedules as $schedule)
                         @php
-                            $plan = $schedule->applied_plan;
-                            $planDurationUnit = optional($plan)->duration_unit;
-                            $planUnit = match ($planDurationUnit) {
+                            $plan = $schedule->applied_plan;// جلب خطة التسعير المطبقة على الجدول
+                            $planDurationUnit = optional($plan)->duration_unit;// جلب وحدة مدة الخطة
+                            $planUnit = match ($planDurationUnit) {// تحويل وحدة المدة إلى اللغة العربية
                                 'month', 'monthly' => 'شهر',
                                 'week', 'weekly' => 'أسبوع',
                                 'season' => 'موسم',
                                 default => $planDurationUnit
                             };
-                            $planDurationValue = optional($plan)->duration_value ?? 1;
+                            $planDurationValue = optional($plan)->duration_value ?? 1;// جلب قيمة مدة الخطة
                             $planDuration = $plan ? trim($planDurationValue . ' ' . ($planUnit ?: 'فترة')) : '';
-                            $isPlan = $schedule->type_prix === 'pricing_plan';
-                            $planUnavailable = $isPlan && !$plan;
-                            $hasPrice = !is_null($schedule->calculated_price);
-                            $isDisabled = $planUnavailable || !$hasPrice;
+                            $isPlan = $schedule->type_prix === 'pricing_plan';// التحقق مما إذا كانت خطة التسعير مستخدمة
+                            $planUnavailable = $isPlan && !$plan;// التحقق من عدم توفر خطة تسعير مطابقة
+                            $hasPrice = !is_null($schedule->calculated_price);// التحقق من وجود سعر محسوب
+                            $isDisabled = $planUnavailable || !$hasPrice;// تعطيل الخيار إذا لم تتوفر خطة أو سعر
                             $sexLabel = match ($schedule->sex) {
                                 'H' => 'ذكور',
                                 'F' => 'إناث',
@@ -310,28 +310,28 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    const scheduleRadios = Array.from(document.querySelectorAll('.schedule-radio'));
-    const totalPriceInput = document.getElementById('total_price');
-    const priceHint = document.getElementById('price_hint');
-    const seasonSelect = document.getElementById('season_select');
-    const pricingPlanInput = document.getElementById('pricing_plan_id');
-    const pricingCard = document.getElementById('pricingCard');
-    const planName = document.getElementById('plan_name');
-    const planType = document.getElementById('plan_type');
-    const planHours = document.getElementById('plan_hours');
-    const planPrice = document.getElementById('plan_price');
-    const planDuration = document.getElementById('plan_duration');
+    const scheduleRadios = Array.from(document.querySelectorAll('.schedule-radio')); // جميع خيارات الجداول الزمنية
+    const totalPriceInput = document.getElementById('total_price');// حقل السعر الإجمالي
+    const priceHint = document.getElementById('price_hint');// تلميح السعر
+    const seasonSelect = document.getElementById('season_select');// اختيار الموسم
+    const pricingPlanInput = document.getElementById('pricing_plan_id');// حقل خطة التسعير المختارة
+    const pricingCard = document.getElementById('pricingCard');// بطاقة تفاصيل خطة التسعير
+    const planName = document.getElementById('plan_name');// اسم الخطة
+    const planType = document.getElementById('plan_type');// نوع التسعير
+    const planHours = document.getElementById('plan_hours');// عدد الحصص في الأسبوع
+    const planPrice = document.getElementById('plan_price');// سعر الخطة
+    const planDuration = document.getElementById('plan_duration');// مدة الاشتراك
 
-    const isFiniteNumber = (value) => Number.isFinite(value) && value >= 0;
+    const isFiniteNumber = (value) => Number.isFinite(value) && value >= 0;// التحقق من كون القيمة رقمية موجبة
 
-    const formatPrice = (value) => {
+    const formatPrice = (value) => {// تنسيق السعر بالعملة المحلية
         if (!value || isNaN(value)) {
             return '';
         }
         return new Intl.NumberFormat('ar-DZ').format(Number(value)) + ' دج';
     };
 
-    const resetPlanCard = () => {
+    const resetPlanCard = () => {//
         planName.textContent = '-';
         planType.textContent = '-';
         planHours.textContent = '-';
@@ -339,20 +339,19 @@ document.addEventListener('DOMContentLoaded', function () {
         planDuration.textContent = '-';
     };
 
-    const highlightOption = (radio) => {
+    const highlightOption = (radio) => {// تمييز الخيار المختار
         document.querySelectorAll('.schedule-option').forEach(option => option.classList.remove('selected'));
         const option = radio.closest('.schedule-option');
         if (option) {
-            option.classList.add('selected');
-        }
+            option.classList.add('selected');// إضافة فئة التمييز
     };
 
-    const getSelectedSeason = () => {
+    const getSelectedSeason = () => {// جلب الموسم المختار
         if (!seasonSelect) {
             return null;
         }
-        const selectedOption = seasonSelect.options[seasonSelect.selectedIndex];
-        if (!selectedOption || !selectedOption.dataset.start || !selectedOption.dataset.end) {
+        const selectedOption = seasonSelect.options[seasonSelect.selectedIndex];// جلب الخيار المختار
+        if (!selectedOption || !selectedOption.dataset.start || !selectedOption.dataset.end) {// التحقق من وجود بيانات صالحة
             return null;
         }
         return {
@@ -363,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     };
 
-    const getSeasonMetrics = (season) => {
+    const getSeasonMetrics = (season) => {// حساب مقاييس الموسم
         if (!season?.start || !season?.end) {
             return null;
         }

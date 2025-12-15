@@ -31,6 +31,7 @@ class ReservationController extends Controller
         'السبت',
     ];
 
+
 public function index()
 {
     $user = auth()->user();
@@ -148,9 +149,9 @@ public function availability($complexActivityId)
             ->with('error', '⚠ يرجى اختيار النشاط قبل المتابعة.');
     }
 
-    $activity = Activity::findOrFail($activity_id);
+    $activity = Activity::findOrFail($activity_id);// جلب النشاط المحدد
 
-    $complexActivity = ComplexActivity::where('activity_id', $activity_id)
+    $complexActivity = ComplexActivity::where('activity_id', $activity_id)// جلب المركب والنشاط المحدد
                     ->where('complex_id', $id)
                     ->firstOrFail();
 
@@ -158,31 +159,31 @@ public function availability($complexActivityId)
         ? Person::where('user_id', $user->id)->with('ageCategory')->first()
         : null;
 
-    $ageCategoryId = $person?->age_category_id;
-    $genderCode = $this->normalizeGender($person?->gender);
+    $ageCategoryId = $person?->age_category_id;// جلب فئة العمر
+    $genderCode = $this->normalizeGender($person?->gender);// تطبيع قيمة الجنس
 
     $pricingPlans = $this->eligiblePricingPlans(
         $complexActivity->activity_id,
         $user,
         $ageCategoryId,
         $genderCode
-    );
+    );// جلب خطط التسعير المؤهلة
 
     $scheduleQuery = Schedule::with('ageCategory')
-        ->where('complex_activity_id', $complexActivity->id);
+        ->where('complex_activity_id', $complexActivity->id);// جلب الجداول الزمنية للمركب والنشاط المحدد
 
-    if ($ageCategoryId) {
-        $scheduleQuery->where(function ($query) use ($ageCategoryId) {
-            $query->whereNull('age_category_id')
-                  ->orWhere('age_category_id', $ageCategoryId);
+    if ($ageCategoryId) {// التحقق من فئة العمر
+        $scheduleQuery->where(function ($query) use ($ageCategoryId) {// شرط للتحقق من فئة العمر
+            $query->whereNull('age_category_id')// إذا لم تكن هناك فئة عمر محددة
+                  ->orWhere('age_category_id', $ageCategoryId);// التحقق من فئة العمر
         });
     }
 
-    if ($genderCode) {
-        $scheduleQuery->where(function ($query) use ($genderCode) {
-            $query->whereNull('sex')
-                  ->orWhere('sex', 'X')
-                  ->orWhere('sex', $genderCode);
+    if ($genderCode) {// التحقق من الجنس
+        $scheduleQuery->where(function ($query) use ($genderCode) {// شرط للتحقق من الجنس
+            $query->whereNull('sex')// إذا لم يكن هناك جنس محدد
+                  ->orWhere('sex', 'X')// إذا كان الجنس غير محدد (X)
+                  ->orWhere('sex', $genderCode);// التحقق من الجنس
         });
     }
 
@@ -190,19 +191,20 @@ public function availability($complexActivityId)
         ->get()
         ->map(function ($schedule) use ($pricingPlans) {
             return $this->decorateScheduleForDisplay($schedule, $pricingPlans);
-        });
+        });// تزيين الجداول الزمنية للعرض
 
-    if ($schedules->isNotEmpty()) {
-        $reservedCounts = Reservation::whereIn('schedule_id', $schedules->pluck('id'))
-            ->selectRaw('schedule_id, SUM(qty_places) as reserved')
-            ->groupBy('schedule_id')
-            ->pluck('reserved', 'schedule_id');
 
-        $schedules = $schedules->map(function ($schedule) use ($reservedCounts) {
-            $reserved = (int) ($reservedCounts[$schedule->id] ?? 0);
-            $schedule->reserved_places = $reserved;
+    if ($schedules->isNotEmpty()) {// التحقق من وجود جداول زمنية
+        $reservedCounts = Reservation::whereIn('schedule_id', $schedules->pluck('id'))// جلب الحجوزات للجداول الزمنية المحددة
+            ->selectRaw('schedule_id, SUM(qty_places) as reserved')// جلب عدد الأماكن المحجوزة
+            ->groupBy('schedule_id')// تجميع النتائج حسب معرف الجدول الزمني
+            ->pluck('reserved', 'schedule_id');// جلب عدد الأماكن المحجوزة لكل جدول زمني
+
+        $schedules = $schedules->map(function ($schedule) use ($reservedCounts) {// تحديث الجداول الزمنية بعدد الأماكن المحجوزة والمتاحة
+            $reserved = (int) ($reservedCounts[$schedule->id] ?? 0);// جلب عدد الأماكن المحجوزة للجدول الزمني الحالي
+            $schedule->reserved_places = $reserved;// تعيين عدد الأماكن المحجوزة
             $schedule->available_places = $schedule->nbr ? max(0, $schedule->nbr - $reserved) : null;
-            return $schedule;
+            return $schedule;// تعيين عدد الأماكن المتاحة
         });
     }
 
@@ -260,13 +262,13 @@ public function renewStore(Request $request, Reservation $reservation)
 
     // حساب عدد الأيام
     $days = \Carbon\Carbon::parse($request->start_date)
-        ->diffInDays(\Carbon\Carbon::parse($request->end_date)) + 1;
+        ->diffInDays(\Carbon\Carbon::parse($request->end_date)) + 1;// إضافة يوم للبداية
 
     // حساب السعر (مثال بسيط)
     $pricePerDay = $reservation->total_price /
-                   max(1, $reservation->duration_hours);
+                   max(1, $reservation->duration_hours);// تجنب القسمة على صفر
 
-    $newPrice = $days * $pricePerDay;
+    $newPrice = $days*$pricePerDay;
 
     // إنشاء حجز جديد (clone)
     $newReservation = $reservation->replicate([
@@ -334,7 +336,7 @@ public function store(Request $request)
         }
     }
 
-    $pricingPlans = $this->eligiblePricingPlans(
+    $pricingPlans = $this->eligiblePricingPlans(// جلب خطط التسعير المؤهلة
         $complexActivity->activity_id,
         $user,
         $ageCategoryId,
@@ -344,20 +346,20 @@ public function store(Request $request)
     $appliedPlan = null;
     $totalPrice = null;
 
-    if ($schedule->type_prix === 'pricing_plan') {
-        $appliedPlan = $this->matchPlanForSchedule($schedule, $pricingPlans, $sessionsPerWeek);
+    if ($schedule->type_prix === 'pricing_plan') {// إذا كانت خطة التسعير
+        $appliedPlan = $this->matchPlanForSchedule($schedule, $pricingPlans, $sessionsPerWeek);// مطابقة خطة التسعير للجدول
 
-        if (!$appliedPlan) {
+        if (!$appliedPlan) {// إذا لم تكن هناك خطة مطابقة
             return back()->with('error', '⚠ لا توجد خطة تسعير مطابقة لهذا الجدول.');
         }
 
-        $totalPrice = $this->calculateSchedulePrice($schedule, $season, $appliedPlan, $sessionsPerWeek);
+        $totalPrice = $this->calculateSchedulePrice($schedule, $season, $appliedPlan, $sessionsPerWeek);// حساب سعر الجدول
     } else {
-        if (!$schedule->price) {
+        if (!$schedule->price) {// إذا لم يكن هناك سعر محدد
             return back()->with('error', '⚠ لا يوجد سعر محدد لهذا الجدول.');
         }
 
-        $totalPrice = $this->calculateFixedSchedulePrice($schedule, $season);
+        $totalPrice = $this->calculateFixedSchedulePrice($schedule, $season);// حساب السعر الثابت للجدول
     }
 
     Reservation::create([
@@ -390,196 +392,206 @@ public function store(Request $request)
     // 8) حجوزات المستخدم
     public function myReservations()
     {
-        $reservations = Reservation::where('user_id', auth()->id())->get();
-        return view('reservation.my_reservations', compact('reservations'));
+        $reservations = Reservation::where('user_id', auth()->id())->get();// جلب حجوزات المستخدم الحالي
+        return view('reservation.my_reservations', compact('reservations'));// عرض صفحة الحجوزات مع تمرير الحجوزات
     }
 
-    private function eligiblePricingPlans($activityId, $user, ?int $ageCategoryId = null, ?string $gender = null)
+    private function eligiblePricingPlans($activityId, $user, ?int $ageCategoryId = null, ?string $gender = null)// جلب خطط التسعير المؤهلة بناءً على معايير المستخدم
     {
-        $typeClient = match ($user->type) {
-            'club' => 'club',
-            'company' => 'company',
-            default => 'person',
+        $typeClient = match ($user->type) {// تحديد نوع العميل بناءً على نوع المستخدم
+            'club' => 'club',// إذا كان المستخدم نادي
+            'company' => 'company',// إذا كان المستخدم شركة
+            default => 'person',// إذا كان المستخدم فرد
         };
 
-        return PricingPlan::where('activity_id', $activityId)
-            ->where('active', 1)
-            ->where('type_client', $typeClient)
-            ->whereDate('valid_from', '<=', now())
-            ->where(function ($query) {
-                $query->whereNull('valid_to')
-                      ->orWhereDate('valid_to', '>=', now());
+        return PricingPlan::where('activity_id', $activityId) // جلب خطط التسعير للنشاط المحدد
+            ->where('active', 1)// التحقق من أن خطة التسعير نشطة
+            ->where('type_client', $typeClient)// التحقق من نوع العميل
+            ->whereDate('valid_from', '<=', now())// التحقق من تاريخ صلاحية خطة التسعير
+            ->where(function ($query) {// شرط للتحقق من تاريخ انتهاء صلاحية خطة التسعير
+                $query->whereNull('valid_to')// إذا لم يكن هناك تاريخ انتهاء
+                      ->orWhereDate('valid_to', '>=', now());// التحقق من صلاحية خطة التسعير
+            }) 
+            ->when($ageCategoryId, function ($query) use ($ageCategoryId) {// التحقق من فئة العمر
+                $query->where(function ($q) use ($ageCategoryId) {// شرط للتحقق من فئة العمر
+                    $q->whereNull('age_category_id') // إذا لم تكن هناك فئة عمر محددة  
+                      ->orWhere('age_category_id', $ageCategoryId);// التحقق من فئة العمر
+                });// التحقق من فئة العمر
             })
-            ->when($ageCategoryId, function ($query) use ($ageCategoryId) {
-                $query->where(function ($q) use ($ageCategoryId) {
-                    $q->whereNull('age_category_id')
-                      ->orWhere('age_category_id', $ageCategoryId);
-                });
+            ->when($gender, function ($query) use ($gender) {// التحقق من الجنس
+                $query->where(function ($q) use ($gender) {// شرط للتحقق من الجنس
+                    $q->whereNull('sexe')// إذا لم يكن هناك جنس محدد
+                      ->orWhere('sexe', $gender);// التحقق من الجنس
+                });// التحقق من الجنس
             })
-            ->when($gender, function ($query) use ($gender) {
-                $query->where(function ($q) use ($gender) {
-                    $q->whereNull('sexe')
-                      ->orWhere('sexe', $gender);
-                });
-            })
-            ->get();
-    }
-
-    private function normalizeGender(?string $value): ?string
-    {
-        if (!$value) {
-            return null;
+            ->get();// جلب خطط التسعير المؤهلة بناءً على المعايير المحددة
+  //  dd()
+    
         }
 
-        $value = strtolower(trim($value));
+    private function normalizeGender(?string $value): ?string// تطبيع قيمة الجنس
+    {
+        if (!$value) {// إذا لم تكن هناك قيمة
+            return null;// إرجاع null
+        }
 
-        return match (true) {
-            in_array($value, ['h', 'homme', 'male', 'm']) => 'H',
-            in_array($value, ['f', 'femme', 'female']) => 'F',
-            default => null,
+        $value = strtolower(trim($value));// تحويل القيمة إلى حروف صغيرة وإزالة الفراغات
+
+        return match (true) {// استخدام تعبير match للتحقق من القيم المختلفة
+            in_array($value, ['h', 'homme', 'male', 'm']) => 'H',// إذا كانت القيمة تشير إلى ذكر
+            in_array($value, ['f', 'femme', 'female']) => 'F',// إذا كانت القيمة تشير إلى أنثى
+            default => null,// إذا لم تتطابق مع أي من القيم المعروفة، إرجاع null
         };
     }
 
-    private function scheduleMatchesUserProfile(Schedule $schedule, ?int $ageCategoryId, ?string $gender): bool
+    private function scheduleMatchesUserProfile(Schedule $schedule, ?int $ageCategoryId, ?string $gender): bool // التحقق من تطابق الجدول مع ملف المستخدم
     {
-        if ($ageCategoryId && $schedule->age_category_id && (int) $schedule->age_category_id !== (int) $ageCategoryId) {
-            return false;
+        if ($ageCategoryId && $schedule->age_category_id && (int) $schedule->age_category_id !== (int) $ageCategoryId) {// التحقق من فئة العمر
+            return false;// إذا لم تتطابق، إرجاع false
         }
 
-        if ($gender && $schedule->sex && $schedule->sex !== 'X' && strtoupper($schedule->sex) !== $gender) {
-            return false;
+        if ($gender && $schedule->sex && $schedule->sex !== 'X' && strtoupper($schedule->sex) !== $gender) {// التحقق من الجنس
+            return false;// إذا لم يتطابق، إرجاع false
         }
 
-        return true;
+        return true;// إذا تطابقت كل الشروط، إرجاع true
     }
 
-    private function decodeScheduleSlots(Schedule $schedule): array
+    private function decodeScheduleSlots(Schedule $schedule): array// فك تشفير الفتحات الزمنية للجدول
     {
-        $slots = $schedule->time_slots;
+        $slots = $schedule->time_slots;// الحصول على الفتحات الزمنية من الجدول
 
-        if (is_string($slots)) {
-            $decoded = json_decode($slots, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                return $decoded ?: [];
+        if (is_string($slots)) {// إذا كانت الفتحات الزمنية عبارة عن سلسلة نصية
+            $decoded = json_decode($slots, true);// فك تشفير السلسلة النصية إلى مصفوفة
+            if (json_last_error() === JSON_ERROR_NONE) {// التحقق من عدم وجود أخطاء في فك التشفير
+                return $decoded ?: [];// إرجاع المصفوفة المفككة أو مصفوفة فارغة إذا كانت null
             }
-            return [];
+            return [];// إرجاع مصفوفة فارغة في حالة وجود خطأ في فك التشفير
         }
 
-        return $slots ?: [];
+        return $slots ?: [];//  إرجاع الفتحات الزمنية كما هي أو مصفوفة فارغة إذا كانت null
     }
 
-    private function decorateScheduleForDisplay(Schedule $schedule, Collection $pricingPlans): Schedule
+    private function decorateScheduleForDisplay(Schedule $schedule, Collection $pricingPlans): Schedule // تزيين الجدول للعرض
     {
-        $slots = $this->decodeScheduleSlots($schedule);
-        $sessionsCount = count($slots);
+        $slots = $this->decodeScheduleSlots($schedule);// فك تشفير الفتحات الزمنية للجدول
+        $sessionsCount = count($slots);// حساب عدد الجلسات في الأسبوع
 
-        $schedule->sessions_count = $sessionsCount;
-        $schedule->formatted_slots = collect($slots)->map(function ($slot) {
-            $dayIndex = $slot['day_number'] ?? null;
-            $dayLabel = $dayIndex !== null ? (self::DAY_LABELS[$dayIndex] ?? 'يوم غير معروف') : 'يوم غير معروف';
+        $schedule->sessions_count = $sessionsCount;// تعيين عدد الجلسات في الجدول
+        $schedule->formatted_slots = collect($slots)->map(function ($slot) {// تنسيق الفتحات الزمنية للعرض
+            $dayIndex = $slot['day_number'] ?? null;// الحصول على رقم اليوم
+            $dayLabel = $dayIndex !== null ? (self::DAY_LABELS[$dayIndex] ?? 'يوم غير معروف') : 'يوم غير معروف';// تعيين تسمية اليوم
 
-            $start = $slot['start'] ?? null;
-            $end   = $slot['end'] ?? null;
+            $start = $slot['start'] ?? null;// الحصول على وقت البدء
+            $end   = $slot['end'] ?? null;// الحصول على وقت الانتهاء
 
-            return trim($dayLabel . ' | ' . ($start ?? '?') . ' → ' . ($end ?? '?'));
-        })->toArray();
+            return trim($dayLabel . ' | ' . ($start ?? '?') . ' → ' . ($end ?? '?'));// 
+        })->toArray();// تحويل المجموعة إلى مصفوفة
 
-        if ($schedule->type_prix === 'pricing_plan') {
-            $matchedPlan = $this->matchPlanForSchedule($schedule, $pricingPlans, $sessionsCount);
-            $schedule->applied_plan = $matchedPlan;
-            $schedule->calculated_price = $matchedPlan?->price;
-            $schedule->pricing_note = $matchedPlan ? $this->pricingUnitLabel($matchedPlan) : null;
+        if ($schedule->type_prix === 'pricing_plan') {// إذا كانت خطة التسعير
+            $matchedPlan = $this->matchPlanForSchedule($schedule, $pricingPlans, $sessionsCount);// مطابقة خطة التسعير للجدول
+            $schedule->applied_plan = $matchedPlan;// تعيين خطة التسعير المطبقة
+            $schedule->calculated_price = $matchedPlan?->price;// تعيين السعر المحسوب بناءً على خطة التسعير
+            $schedule->pricing_note = $matchedPlan ? $this->pricingUnitLabel($matchedPlan) : null;// تعيين ملاحظة التسعير بناءً على خطة التسعير
         } else {
-            $schedule->applied_plan = null;
-            $schedule->calculated_price = $schedule->price;
-            $schedule->pricing_note = 'سعر ثابت';
+            $schedule->applied_plan = null;// لا توجد خطة تسعير مطبقة
+            $schedule->calculated_price = $schedule->price;// تعيين السعر الثابت للجدول
+            $schedule->pricing_note = 'سعر ثابت';// 
         }
 
         return $schedule;
     }
 
-    private function matchPlanForSchedule(Schedule $schedule, Collection $pricingPlans, int $sessionsPerWeek)
+    private function matchPlanForSchedule(Schedule $schedule , Collection $pricingPlans, int $sessionsPerWeek)// مطابقة خطة التسعير للجدول
     {
-        return $pricingPlans->first(function ($plan) use ($schedule, $sessionsPerWeek) {
-            if ((int) $plan->sessions_per_week !== $sessionsPerWeek) {
-                return false;
+        return $pricingPlans->first(function ($plan) use ($schedule, $sessionsPerWeek) {// البحث عن أول خطة مطابقة
+            if ((int) $plan->sessions_per_week !== $sessionsPerWeek) {// التحقق من عدد الحصص في الأسبوع
+                return false;// إذا لم يتطابق، إرجاع false
             }
 
-            if ($schedule->age_category_id && $plan->age_category_id && (int) $plan->age_category_id !== (int) $schedule->age_category_id) {
-                return false;
+            if ($schedule->age_category_id && $plan->age_category_id && (int) $plan->age_category_id !== (int) $schedule->age_category_id) {// التحقق من فئة العمر
+                return false;// إذا لم تتطابق، إرجاع false
             }
 
-            $scheduleSex = $schedule->sex ? strtoupper($schedule->sex) : 'X';
-            if ($plan->sexe && $scheduleSex !== 'X' && strtoupper($plan->sexe) !== $scheduleSex) {
-                return false;
+            $scheduleSex = $schedule->sex ? strtoupper($schedule->sex) : 'X';// الحصول على جنس الجدول
+            if ($plan->sexe && $scheduleSex !== 'X' && strtoupper($plan->sexe) !== $scheduleSex) {// التحقق من الجنس
+                return false;// إذا لم يتطابق، إرجاع false
             }
 
-            return true;
+            return true;// إذا تطابقت كل الشروط، إرجاع true
         });
     }
 
-    private function pricingUnitLabel(?PricingPlan $plan): ?string
+    private function pricingUnitLabel(?PricingPlan $plan): ?string// تسمية وحدة التسعير
     {
-        if (!$plan) {
+        if (!$plan) {// إذا لم تكن هناك خطة
             return null;
         }
 
-        $unit = strtolower($plan->duration_unit ?? $plan->pricing_type ?? '');
+        $unit = strtolower($plan->duration_unit ?? $plan->pricing_type ?? '');// وحدة التسعير
 
-        return match ($unit) {
-            'monthly', 'month' => 'السعر لكل شهر',
-            'weekly', 'week' => 'السعر لكل أسبوع',
-            'session' => 'السعر لكل حصة',
-            'ticket' => 'سعر التذكرة',
-            default => 'سعر الخطة',
+        return match ($unit) {// تحديد التسمية بناءً على وحدة التسعير
+            'monthly', 'month' => 'السعر لكل شهر',// السعر لكل شهر
+            'weekly', 'week' => 'السعر لكل أسبوع',// السعر لكل أسبوع
+            'session' => 'السعر لكل حصة',// السعر لكل حصة
+            'ticket' => 'سعر التذكرة',// سعر التذكرة
+            default => 'سعر الخطة',//   
         };
     }
 
-    private function calculateSchedulePrice(Schedule $schedule, Season $season, PricingPlan $plan, int $sessionsPerWeek): float
+    private function calculateSchedulePrice(Schedule $schedule, Season $season, PricingPlan $plan, int $sessionsPerWeek): float// حساب سعر الجدول
     {
-        if ($schedule->type_prix !== 'pricing_plan') {
-            return $this->calculateFixedSchedulePrice($schedule, $season);
+        if ($schedule->type_prix !== 'pricing_plan') {// إذا لم تكن خطة التسعير
+            return $this->calculateFixedSchedulePrice($schedule, $season);// حساب السعر الثابت للجدول
         }
 
-        return $this->calculatePlanPrice($plan, $season, $sessionsPerWeek);
+        return $this->calculatePlanPrice($plan, $season, $sessionsPerWeek);// حساب سعر الخطة بناءً على الموسم وعدد الحصص في الأسبوع
     }
 
-    private function calculateFixedSchedulePrice(Schedule $schedule, Season $season): float
+    private function calculateFixedSchedulePrice(Schedule $schedule, Season $season): float// حساب السعر الثابت للجدول
     {
-        $basePrice = (float) $schedule->price;
-        $start = Carbon::parse($season->date_debut);
-        $end = Carbon::parse($season->date_fin);
+        $basePrice = (float) $schedule->price;// السعر الأساسي للجدول
+        $start = Carbon::parse($season->date_debut);// تاريخ بداية الموسم
+        $end = Carbon::parse($season->date_fin);// تاريخ نهاية الموسم
 
-        $monthsBetween = $start->diffInMonths($end);
+        $monthsBetween = $start->diffInMonths($end);// حساب عدد الشهور بين البداية والنهاية
 
-        if ($end->day >= $start->day || $monthsBetween === 0) {
-            $monthsBetween += 1;
+        if ($end->day >= $start->day || $monthsBetween === 0) {// إذا كان يوم النهاية أكبر أو يساوي يوم البداية
+            $monthsBetween += 1;// زيادة عدد الشهور بمقدار 1
         }
 
-        $months = max(1, $monthsBetween);
-        $monthsCharged = min(12, $months);
+        $months = max(1, $monthsBetween);// التأكد من أن عدد الشهور لا يقل عن 1
+        $monthsCharged = min(12, $months);// تحديد عدد الشهور التي سيتم احتسابها (بحد أقصى 12)
 
-        return $basePrice * $monthsCharged;
+        return $basePrice * $monthsCharged;// حساب السعر النهائي بضرب السعر الأساسي في عدد الشهور المحتسبة
     }
 
-    private function calculatePlanPrice(PricingPlan $plan, Season $season, int $sessionsPerWeek): float
+    private function calculatePlanPrice(PricingPlan $plan, Season $season, int $sessionsPerWeek): float // حساب سعر الخطة
     {
-        $start = Carbon::parse($season->date_debut);
-        $end = Carbon::parse($season->date_fin);
-        $unit = strtolower($plan->duration_unit ?? $plan->pricing_type ?? 'season');
-        $durationValue = max(1, (int) ($plan->duration_value ?? 1));
-        $basePrice = (float) $plan->price;
+        $start = Carbon::parse($season->date_debut);    // تاريخ بداية الموسم
+        $end = Carbon::parse($season->date_fin);// تاريخ نهاية الموسم
+        $unit = strtolower($plan->duration_unit ?? $plan->pricing_type ?? 'season');// وحدة التسعير
+        $durationValue = max(1, (int) ($plan->duration_value ?? 1));// قيمة المدة
+        $basePrice = (float) $plan->price;// السعر الأساسي للخطة
 
-        $days = $start->diffInDays($end) + 1;
-        $weeks = max(1, (int) ceil($days / 7));
-        $months = max(1, (int) ceil($days / 30));
+        $days = $start->diffInDays($end) + 1;// عدد الأيام في الموسم
+        $weeks = max(1, (int) ceil($days / 7));// حساب الأسابيع
+        $months = max(1, (int) ceil($days / 30));// حساب الشهور
 
-        return match ($unit) {
-            'month', 'monthly' => ceil($months / $durationValue) * $basePrice,
-            'week', 'weekly' => ceil($weeks / $durationValue) * $basePrice,
-            'session' => $weeks * max(1, $plan->sessions_per_week ?? $sessionsPerWeek) * $basePrice,
-            'ticket' => $basePrice,
-            default => $basePrice,
+        return match ($unit) { // تحديد السعر بناءً على وحدة التسعير
+            'month', 'monthly' => $basePrice, // ceil($months / $durationValue) * $basePrice,// السعر مضروب في عدد الشهور مقسوم على قيمة المدة
+            'week', 'weekly' => ceil($weeks / $durationValue) * $basePrice,// السعر مضروب في عدد الأسابيع مقسوم على قيمة المدة
+            'session' => $weeks * min(1, $plan->sessions_per_week ?? $sessionsPerWeek) * $basePrice,// السعر مضروب في عدد الأسابيع وعدد الحصص في الأسبوع
+            'ticket' => $basePrice,// سعر التذكرة ثابت
+            default => $basePrice,// السعر الأساسي للخطة
         };
     }
+
+    public function destroy(Reservation $reservation)
+{
+    $reservation->delete();
+
+    return redirect()->back()->with('success', 'تم حذف الحجز بنجاح');
+}
+
 }

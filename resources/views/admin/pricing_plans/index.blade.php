@@ -72,7 +72,7 @@
 
                     <td>
                         @switch($p->sexe)
-                            @case('mixte') مختلط @break
+                            @case('X') مختلط @break
                             @case('H') ذكور @break
                             @case('F') إناث @break
                             @default -
