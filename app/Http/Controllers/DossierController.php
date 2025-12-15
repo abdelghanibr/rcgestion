@@ -11,6 +11,19 @@ class DossierController extends Controller
     {
         return view('dossier.upload');
     }
+public function updateNote(Request $request, Dossier $dossier)
+{
+    $request->validate([
+        'note_admin' => 'required|string|max:1000',
+    ]);
+
+    $dossier->update([
+        'note_admin' => $request->note_admin,
+    ]);
+
+    return back()->with('success', '✔ تم حفظ الملاحظة بنجاح');
+}
+
 
    public function store(Request $request)
 {
@@ -51,6 +64,13 @@ public function index(Request $request)
     if ($request->has('etat') && $request->etat !== 'all') {
         $query->where('etat', $request->etat);
     }
+$dossiers = Dossier::with('person')->get();
+
+$dossiers->each(function ($d) {
+    $d->age = $d->person && $d->person->birth_date
+        ? \Carbon\Carbon::parse($d->person->birth_date)->age
+        : null;
+});
 
     $dossiers = $query->latest()->paginate(10);
 

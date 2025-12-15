@@ -33,20 +33,20 @@
                 <p class="text-muted">إدارة قوائم اللاعبين وتسجيل المنخرطين</p>
 
                 <!-- 🆕 إحصائيات مُضافة -->
-           <a href="{{ route('club.persons.index', 'لاعب') }}" class="stats-box">
+       
     <strong> اللاعبين:</strong> {{ $playersCount }}
 </a>
 
-<a href="{{ route('club.persons.index', 'مدرب') }}" class="stats-box">
+
     <strong> المدربين:</strong> {{ $coachsCount }}
 </a>
 
-<a href="{{ route('club.persons.index', 'مسير') }}" class="stats-box">
+
     <strong> المسيرين:</strong> {{ $managersCount }}
 </a>
 
 
-               <a href="{{ route('profile.new') }}" class="btn btn-main btn-sm mt-2">
+               <a href="{{ route('club.persons.index') }}" class="btn btn-main btn-sm mt-2">
     إدارة اللاعبين
 </a>
 

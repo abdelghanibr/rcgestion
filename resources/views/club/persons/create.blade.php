@@ -8,7 +8,7 @@
 
         {{-- Header --}}
         <div class="card-header bg-primary text-white rounded-top-4 d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">✏️ تعديل بيانات المستخدم</h5>
+            <h5 class="mb-0">➕ إضافة مستخدم جديد</h5>
             <span class="fs-5">👤</span>
         </div>
 
@@ -26,7 +26,7 @@
             @endif
 
             {{-- Form --}}
-            <form action="{{ route('club.persons.update', $person->id) }}"
+            <form action="{{ route('club.persons.store') }}"
                   method="POST"
                   enctype="multipart/form-data">
                 @csrf
@@ -38,8 +38,8 @@
                         <label class="form-label fw-bold">الاسم</label>
                         <input type="text" name="firstname"
                                class="form-control form-control-lg rounded-3"
-                               value="{{ old('firstname', $person->firstname) }}"
-                               required>
+                               placeholder="أدخل الاسم"
+                               value="{{ old('firstname') }}" required>
                     </div>
 
                     {{-- اللقب --}}
@@ -47,8 +47,8 @@
                         <label class="form-label fw-bold">اللقب</label>
                         <input type="text" name="lastname"
                                class="form-control form-control-lg rounded-3"
-                               value="{{ old('lastname', $person->lastname) }}"
-                               required>
+                               placeholder="أدخل اللقب"
+                               value="{{ old('lastname') }}" required>
                     </div>
 
                     {{-- تاريخ الميلاد --}}
@@ -56,8 +56,7 @@
                         <label class="form-label fw-bold">تاريخ الميلاد</label>
                         <input type="date" name="birth_date"
                                class="form-control form-control-lg rounded-3"
-                               value="{{ old('birth_date', $person->birth_date) }}"
-                               required>
+                               value="{{ old('birth_date') }}" required>
                     </div>
 
                     {{-- الجنس --}}
@@ -66,8 +65,8 @@
                         <select name="gender"
                                 class="form-select form-select-lg rounded-3" required>
                             <option value="">— اختر —</option>
-                            <option value="ذكر" {{ old('gender', $person->gender)=='ذكر'?'selected':'' }}>ذكر</option>
-                            <option value="أنثى" {{ old('gender', $person->gender)=='أنثى'?'selected':'' }}>أنثى</option>
+                            <option value="ذكر" {{ old('gender')=='ذكر'?'selected':'' }}>ذكر</option>
+                            <option value="أنثى" {{ old('gender')=='أنثى'?'selected':'' }}>أنثى</option>
                         </select>
                     </div>
 
@@ -78,8 +77,7 @@
                                 class="form-select form-select-lg rounded-3" required>
                             <option value="">— اختر —</option>
                             @foreach(['لاعب','مدرب','مسير','آخر'] as $role)
-                                <option value="{{ $role }}"
-                                    {{ old('education', $person->education)==$role?'selected':'' }}>
+                                <option value="{{ $role }}" {{ old('education')==$role?'selected':'' }}>
                                     {{ $role }}
                                 </option>
                             @endforeach
@@ -88,18 +86,19 @@
 
                     {{-- الصورة --}}
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">📷 الصورة الشمسية</label>
+                        <label class="form-label fw-bold">📷 صورة شمسية</label>
 
                         <input type="file"
                                name="photo"
                                id="photoInput"
                                class="form-control form-control-lg rounded-3"
-                               accept="image/jpeg,image/png">
+                               accept="image/jpeg,image/png"
+                               required>
 
                         {{-- Preview --}}
                         <div class="text-center mt-3">
                             <img id="photoPreview"
-                                 src="{{ $person->photo ? asset('storage/'.$person->photo) : asset('images/avatar-placeholder.png') }}"
+                                 src="{{ asset('images/avatar-placeholder.png') }}"
                                  class="rounded-circle shadow-sm"
                                  style="width:120px;height:120px;object-fit:cover;">
                         </div>
@@ -122,7 +121,7 @@
                 <div class="text-center mt-5">
                     <button type="submit"
                             class="btn btn-success btn-lg px-5 rounded-pill shadow">
-                        💾 حفظ التعديلات
+                        💾 حفظ البيانات
                     </button>
                 </div>
 

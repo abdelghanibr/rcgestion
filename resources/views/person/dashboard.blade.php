@@ -55,6 +55,7 @@
     @php
         $attachments = json_decode($dossier->attachments ?? '[]', true);
         $hasFiles = is_array($attachments) && count($attachments) > 0;
+        $hasNote  = !empty($dossier->note_admin);
     @endphp
 
     {{-- 🟡 حالة انتظار رفع الوثائق --}}
@@ -63,6 +64,15 @@
             ⚠ ملفك غير مكتمل!
             <br>يرجى رفع الوثائق المطلوبة لإكمال معالجة الطلب.
             <br>
+
+            @if($hasNote)
+                <hr>
+                <strong>📝 ملاحظة الإدارة:</strong>
+                <div class="mt-1 small">
+                    {{ $dossier->note_admin }}
+                </div>
+            @endif
+
             <a href="{{ route('profile.step', 4) }}" class="btn btn-primary btn-sm mt-2">
                 📤 استكمال رفع الوثائق
             </a>
@@ -78,7 +88,15 @@
     @elseif($dossier->etat == 'rejected')
         <div class="alert alert-danger status-box">
             ❌ تم رفض ملفك. يرجى تعديل الوثائق وإعادة الرفع.
-            <br>
+
+            @if($hasNote)
+                <hr>
+                <strong>📝 سبب الرفض / ملاحظة الإدارة:</strong>
+                <div class="mt-1 small">
+                    {{ $dossier->note_admin }}
+                </div>
+            @endif
+
             <a href="{{ route('profile.step', 4) }}" class="btn btn-light btn-sm mt-2">
                 ✏️ إعادة رفع الوثائق
             </a>
@@ -88,11 +106,19 @@
     @else
         <div class="alert alert-warning status-box">
             ⏳ ملفك قيد الدراسة حالياً 🔔
+
+            @if($hasNote)
+                <hr>
+                <strong>📝 ملاحظة الإدارة:</strong>
+                <div class="mt-1 small">
+                    {{ $dossier->note_admin }}
+                </div>
+            @endif
         </div>
     @endif
 
 @else
-    {{-- لا يوجد دوسيي بعد --}}
+    {{-- لا يوجد ملف بعد --}}
     <div class="alert alert-info status-box">
         ⚠ لم تقم بإرسال ملفك بعد!
         <br>
@@ -102,6 +128,50 @@
     </div>
 @endif
 
+
 </div>
 </div>
+
+<div class="dash-box mt-4">
+    <h4 class="mb-3">📥 تحميل النماذج الرسمية</h4>
+
+    <p class="text-muted mb-3">
+        يرجى تحميل النماذج التالية، تعبئتها، ثم إعادة رفعها في ملفك الشخصي.
+    </p>
+
+    <div class="row g-3">
+
+        {{-- 📄 نموذج التعهد  --}}
+        <div class="col-md-6">
+            <div class="dash-card">
+                <h6>📄 نموذج التعهّد</h6>
+                <p class="text-muted small">
+                    خاص بالمشاركين البالغين
+                </p>
+                <a href="{{ asset('forms/engagement.pdf') }}"
+                   target="_blank"
+                   class="btn btn-outline-success btn-sm">
+                    ⬇ تحميل النموذج
+                </a>
+            </div>
+        </div>
+
+        {{-- 📄 التصريح الأبوي (للقُصّر) --}}
+        <div class="col-md-6">
+            <div class="dash-card">
+                <h6>📄 نموذج التصريح الأبوي</h6>
+                <p class="text-muted small">
+                    خاص بالمشاركين القُصّر
+                </p>
+                <a href="{{ asset('forms/parental_authorization.pdf') }}"
+                   target="_blank"
+                   class="btn btn-outline-success btn-sm">
+                    ⬇ تحميل النموذج
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
 @endsection

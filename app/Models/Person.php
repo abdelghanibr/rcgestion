@@ -30,8 +30,8 @@ class Person extends Model
     'parent_phone',
     'parent_relation',
     'age_category_id',
-    'club_id',
-    'entreprise_id'
+    'club_id'
+    //'entreprise_id'
 ];
 
     public function user()
@@ -48,7 +48,7 @@ class Person extends Model
     {
         return $this->belongsTo(AgeCategory::class);
     }
-    public function age()
+public function age()
 {
     return $this->hasOne(Person::class, 'user_id', 'id');
 }

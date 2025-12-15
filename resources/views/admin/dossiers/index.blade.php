@@ -3,29 +3,57 @@
 @section('content')
 <div class="container py-4" style="direction: rtl; text-align: right;">
 
-    <h3 class="mb-4 fw-bold">إدارة ملفات المشتركين</h3>
+    <h3 class="mb-3 fw-bold">📁 إدارة ملفات المشتركين</h3>
 
-    <!-- الفلاتر -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <label class="form-label fw-bold">فلتر الحالة</label>
-            <select id="filterEtat" class="form-select form-select-sm">
-                <option value="">كل الحالات</option>
-                <option value="pending">قيد الدراسة</option>
-                <option value="approved">مقبول</option>
-                <option value="rejected">مرفوض</option>
-            </select>
-        </div>
+    {{-- ===== الفلاتر ===== --}}
+{{-- ===== الفلاتر ===== --}}
+<div class="row mb-3 g-2 align-items-end">
+
+    <div class="col-md-3">
+        <label class="form-label fw-bold small">فلتر الحالة</label>
+        <select id="filterEtat" class="form-select form-select-sm">
+            <option value="">كل الحالات</option>
+            <option value="pending">قيد الدراسة</option>
+            <option value="approved">مقبول</option>
+            <option value="rejected">مرفوض</option>
+        </select>
     </div>
 
-    <!-- الجدول -->
+    <div class="col-md-3">
+        <label class="form-label fw-bold small">صاحب الملف</label>
+        <input type="text" id="filterOwner"
+               class="form-control form-control-sm"
+               placeholder="بحث بالاسم">
+    </div>
+
+    <div class="col-md-3">
+        <label class="form-label fw-bold small">الحساب</label>
+        <input type="text" id="filterAccount"
+               class="form-control form-control-sm"
+               placeholder="بحث بالحساب">
+    </div>
+
+    <div class="col-md-3">
+        <label class="form-label fw-bold small">العمر</label>
+        <input type="number" id="filterAge"
+               class="form-control form-control-sm"
+               placeholder="مثال: 18">
+    </div>
+
+</div>
+
+
+    {{-- ===== الجدول ===== --}}
     <div class="table-responsive">
-        <table id="dossiersTable" class="table table-bordered table-striped table-hover text-center" style="width:100%">
+        <table id="dossiersTable"
+               class="table table-bordered table-striped table-hover text-center align-middle w-100">
+
             <thead class="table-dark">
                 <tr>
                     <th>#</th>
                     <th>صاحب الملف</th>
-                    <th>النادي / الشخص</th>
+                    <th>الحساب</th>
+                    <th>العمر</th>
                     <th>الحالة</th>
                     <th>التاريخ</th>
                     <th>المرفقات</th>
@@ -33,101 +61,210 @@
                     <th>إجراءات</th>
                 </tr>
             </thead>
+
             <tbody>
-                @foreach($dossiers as $d)
+            @foreach($dossiers as $d)
+
+                @php
+                    $age = ($d->person && $d->person->birth_date)
+                        ? \Carbon\Carbon::parse($d->person->birth_date)->age
+                        : null;
+
+                    $files = json_decode($d->attachments, true) ?? [];
+
+                    $labels = [
+                        'medical_certificate'      => '🩺 شهادة طبية',
+                        'birth_certificate'        => '🧾 شهادة الميلاد',
+                        'photo'                    => '📷 صورة شمسية',
+                        'parental_authorization'   => '✍️ تصريح أبوي',
+                        'guardian_id_card'         => '🪪 بطاقة تعريف الولي',
+                        'national_id_card'         => '🪪 بطاقة تعريف وطنية',
+                        'engagement'               => '📄 تعهّد',
+                    ];
+                @endphp
+
                 <tr>
                     <td>{{ $d->id }}</td>
-                    <td>{{ $d->person->firstname ?? '' }} {{ $d->person->lastname ?? '' }}</td>
-                    <td>{{ $d->person->user->name ?? '---' }}</td>
-                    <td>
-                        <span class="etat d-none">{{ $d->etat }}</span>
-                        @if($d->etat == 'pending')
-                            <span class="badge bg-warning">قيد الدراسة</span>
-                        @elseif($d->etat == 'approved')
-                            <span class="badge bg-success">مقبول</span>
-                        @else
-                            <span class="badge bg-danger">مرفوض</span>
-                        @endif
+
+                    <td class="fw-semibold small">
+                        {{ $d->person->firstname ?? '' }}
+                        {{ $d->person->lastname ?? '' }}
                     </td>
-                    <td>{{ $d->created_at->format('d-m-Y') }}</td>
+
+                    <td class="small">{{ $d->person->user->name ?? '—' }}</td>
+
+                    {{-- العمر --}}
                     <td>
-                        @php $files = json_decode($d->attachments, true); @endphp
-                        @if(is_array($files) && count($files))
-                            @foreach($files as $f)
-                                <a href="{{ asset($f) }}" target="_blank" class="btn btn-sm btn-outline-primary">تحميل</a>
-                            @endforeach
+                        @if($age !== null)
+                            <span class="badge bg-info small">{{ $age }} سنة</span>
                         @else
                             —
                         @endif
                     </td>
-                    <td>{{ $d->note_admin ?? '—' }}</td>
+
+                    {{-- الحالة --}}
                     <td>
-                        @if($d->etat == 'pending')
-                            <a href="{{ route('admin.dossiers.approve', $d->id) }}" class="btn btn-success btn-sm" onclick="return confirm('قبول الملف؟')">قبول</a>
-                            <a href="{{ route('admin.dossiers.reject', $d->id) }}" class="btn btn-danger btn-sm" onclick="return confirm('رفض الملف؟')">رفض</a>
+                        <span class="etat d-none">{{ $d->etat }}</span>
+
+                        @if($d->etat === 'pending')
+                            <span class="badge bg-warning small">قيد الدراسة</span>
+                        @elseif($d->etat === 'approved')
+                            <span class="badge bg-success small">مقبول</span>
+                        @else
+                            <span class="badge bg-danger small">مرفوض</span>
+                        @endif
+                    </td>
+
+                    <td class="small">{{ $d->created_at->format('d-m-Y') }}</td>
+
+                    {{-- المرفقات --}}
+                    <td class="text-start">
+                        @if(count($files))
+                            <div class="attachments-box">
+                                @foreach($files as $key => $path)
+                                    <div class="attachment-item">
+                                        <span class="attachment-title">
+                                            {{ $labels[$key] ?? '📎 وثيقة' }}
+                                        </span>
+                                        <a href="{{ asset($path) }}"
+                                           target="_blank"
+                                           class="btn btn-outline-primary btn-xs">
+                                            ⬇ تحميل
+                                        </a>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            —
+                        @endif
+                    </td>
+
+                   <td class="small text-start">
+    @if($d->note_admin)
+        <span class="text-muted">{{ $d->note_admin }}</span>
+    @else
+        —
+    @endif
+</td>
+
+
+                    {{-- الإجراءات --}}
+                    <td>
+                        @if($d->etat === 'pending')
+                            <a href="{{ route('admin.dossiers.approve', $d->id) }}"
+                               class="btn btn-success btn-xs"
+                               onclick="return confirm('قبول الملف؟')">
+                                قبول
+                            </a>
+
+                            <a href="{{ route('admin.dossiers.reject', $d->id) }}"
+                               class="btn btn-danger btn-xs"
+                               onclick="return confirm('رفض الملف؟')">
+                                رفض
+                            </a>
+                            <button class="btn btn-secondary btn-xs"
+        data-bs-toggle="modal"
+        data-bs-target="#noteModal{{ $d->id }}">
+    📝 ملاحظة
+</button>
+
                         @else
                             —
                         @endif
                     </td>
                 </tr>
-                @endforeach
+
+                <div class="modal fade" id="noteModal{{ $d->id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <form action="{{ route('admin.dossiers.note', $d->id) }}" method="POST">
+                @csrf
+
+                <div class="modal-header">
+                    <h5 class="modal-title">📝 ملاحظة إدارية</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <label class="form-label fw-bold">الملاحظة</label>
+                    <textarea name="note_admin"
+                              class="form-control form-control-sm"
+                              rows="4"
+                              placeholder="اكتب ملاحظتك هنا...">{{ $d->note_admin }}</textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success btn-sm">
+                        💾 حفظ
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+
+            @endforeach
             </tbody>
         </table>
     </div>
 </div>
 @endsection
-
 @push('css')
-<!-- DataTables + Buttons CSS -->
 <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.1.2/css/buttons.bootstrap5.min.css">
+
+<style>
+table.dataTable {
+    font-size: 12px;
+}
+
+table thead th {
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.attachments-box {
+    background: #f8fafc;
+    padding: 8px;
+    border-radius: 10px;
+}
+
+.attachment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 5px;
+}
+
+.attachment-item:last-child {
+    margin-bottom: 0;
+}
+
+.attachment-title {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.btn-xs {
+    font-size: 11px;
+    padding: 3px 8px;
+}
+
+.dataTables_filter input {
+    font-size: 12px !important;
+}
+</style>
 @endpush
-
 @push('js')
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
-<!-- DataTables core -->
-<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
-
-<!-- Buttons + Export dependencies -->
-<script src="https://cdn.datatables.net/buttons/3.1.2/js/dataTables.buttons.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.bootstrap5.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
-<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.html5.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.print.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.colVis.min.js"></script>
-
-<script>
-$(document).ready(function () {
-
-    var table = $('#dossiersTable').DataTable({
-        language: { url: "https://cdn.datatables.net/plug-ins/2.0.8/i18n/ar.json" },
-        responsive: true,
-        pageLength: 10,
-        order: [[0, "desc"]],
-        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "الكل"]],
-
-        dom:
-            "<'row mb-3'<'col-md-4'l><'col-md-4 text-center'B><'col-md-4'f>>" +
-            "<'row'<'col-12'tr>>" +
-            "<'row mt-3'<'col-md-6'i><'col-md-6'p>>",
-
-        buttons: [
-            { extend: 'excelHtml5', text: '📊 إكسل', className: 'btn btn-success btn-sm' },
-            { extend: 'pdfHtml5',  text: '📄 PDF', className: 'btn btn-danger btn-sm' },
-            { extend: 'print',     text: '🖨 طباعة', className: 'btn btn-info btn-sm' },
-            { extend: 'colvis',    text: '👁 إظهار الأعمدة', className: 'btn btn-secondary btn-sm' }
-        ]
-    });
-
-    // فلتر حسب الحالة
-    $('#filterEtat').on('change', function () {
-        table.column(3).search(this.value).draw();
-    });
-
-});
-</script>
+@include('admin.partials.datatable-script', ['tableId' => '#dossiersTable'])
 @endpush

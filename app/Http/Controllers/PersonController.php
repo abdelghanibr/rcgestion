@@ -5,45 +5,45 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Person;
+use Carbon\Carbon;
 
 class PersonController extends Controller
 {
-    public function index($type)
-    {
-        $user = Auth::user();
 
-        if (!in_array($type, ['لاعب','مدرب','مسير','آخر'])) {
-            abort(404);
-        }
 
-        // 👇 اختيار مصدر البيانات حسب نوع المستخدم
-        if ($user->type === 'club') {
-            $persons = Person::where('user_id', $user->id)
-                                ->where('education', $type)
-                                ->orderByDesc('id')
-                                ->get();
+public function index()
+{
+    $user = Auth::user();
 
-            $view = 'club.persons.index';
-        }
-        elseif ($user->type === 'company') {
-            $persons = Person::where('user_id', $user->id)
-                                ->where('education', $type)
-                                ->orderByDesc('id')
-                                ->get();
+    // 👇 اختيار مصدر البيانات حسب نوع المستخدم
+    if ($user->type === 'club') {
 
-            $view = 'entreprise.persons.index';
-        }
-        elseif ($user->type === 'person') {
-            $persons = Person::where('user_id', $user->id)->get();
+        $persons = Person::where('user_id', $user->id)
+            ->orderByDesc('id')
+            ->get();
 
-            $view = 'person.profile'; // 👈 يمكنك تغيير هذا لاحقاً
-        }
-        else {
-            abort(403, "Unauthorized");
-        }
-
-        return view($view, compact('persons', 'type'));
+        $view = 'club.persons.index';
     }
+    elseif ($user->type === 'company') {
+
+        $persons = Person::where('user_id', $user->id)
+            ->orderByDesc('id')
+            ->get();
+
+        $view = 'entreprise.persons.index';
+    }
+    elseif ($user->type === 'person') {
+
+        $persons = Person::where('user_id', $user->id)->get();
+
+        $view = 'person.profile';
+    }
+    else {
+        abort(403, 'Unauthorized');
+    }
+
+    return view($view, compact('persons'));
+}
 
 
     public function edit($id)
@@ -111,7 +111,10 @@ class PersonController extends Controller
                      ->with('success', '✔ تم تحديث البيانات بنجاح');
 }
 
-
+public function create()
+{
+    return view('club.persons.create');
+}
     /* ------------------------------------------------
     | 4️⃣ حذف شخص
     --------------------------------------------------*/
@@ -128,4 +131,58 @@ class PersonController extends Controller
 
         return redirect()->back()->with('success', '❌ تم حذف المستخدم بنجاح');
     }
+
+
+    public function store(Request $request)
+{
+    $validated = $request->validate([
+        'firstname'  => 'required|string|max:100',
+        'lastname'   => 'required|string|max:100',
+        'birth_date' => 'required|date',
+        'gender'     => 'required|in:ذكر,أنثى',
+        'education'  => 'required|string|max:50',
+        'photo'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+    ], [
+        'photo.image' => 'يجب أن يكون الملف صورة',
+        'photo.mimes' => 'الصيغ المسموحة: JPG, PNG',
+        'photo.max'   => 'حجم الصورة لا يتجاوز 2MB',
+    ]);
+
+    // حساب العمر
+    $age = Carbon::parse($validated['birth_date'])->age;
+
+    // رفع الصورة
+    $photoPath = null;
+    if ($request->hasFile('photo')) {
+        $photoPath = $request->file('photo')->store('photos/persons', 'public');
+    }
+
+
+
+    $person = new Person();
+$person->user_id = auth()->id();
+$person->firstname = $request->firstname;
+$person->lastname = $request->lastname;
+$person->birth_date = $request->birth_date;
+$person->gender = $request->gender;
+$person->education = $request->education;
+$person->photo = $photoPath;
+$person->save();
+
+//dd('SAVED', $person->id);
+    // إنشاء الشخص
+ /*   Person::create([
+        'firstname'  => $validated['firstname'],
+        'lastname'   => $validated['lastname'],
+        'birth_date' => $validated['birth_date'],
+        'gender'     => $validated['gender'],
+        'education'  => $validated['education'],
+        //'photo'      => $photoPath,
+        'club_id'    => Auth::user()->club->id, // ربطه بالنادي
+    ]);*/
+
+    return redirect()
+        ->route('club.persons.index')
+        ->with('success', '✅ تمت إضافة العضو بنجاح');
+}
 }

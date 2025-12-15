@@ -29,7 +29,7 @@ public function edit()
             return view('admin.profile.edit', compact('user'));
 
         case 'club':
-            return view('club.profile.edit', compact('user'));
+            return view('club.persons.edit', compact('user'));
 
         case 'person':
             return view('person.profile.edit', compact('user'));

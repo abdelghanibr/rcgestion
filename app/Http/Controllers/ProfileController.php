@@ -20,7 +20,9 @@ class ProfileController extends Controller
 public function showStep($step)
 {
     $user = Auth::user();
-    
+     $person = Person::where('user_id', $user->id)->orderByDesc('id')->firstOrFail();
+     $dossier = Dossier::where('person_id', $person->id)->first();
+   //dd($dossier->attachments);
     // 🔹 إذا كا مستخدم club أو entreprise
     if ($user->type === 'club' || $user->type === 'company') {
 
@@ -49,8 +51,9 @@ public function showStep($step)
         "غرداية","غليزان"
     ];
 
-    return view('profile.steps', compact('step','user','person','wilayas'));
+    return view('profile.steps', compact('step','user','person','wilayas','dossier'));
 }
+
 
 
 
@@ -59,6 +62,10 @@ public function showStep($step)
         $user = Auth::user();
         $type = $user->type;
 
+         //$dossier = Dossier::where('person_id', $person->id)->first();
+$person = Person::where('user_id', $user->id)->orderByDesc('id')->firstOrFail();
+    $dossier = Dossier::where('person_id', $person->id)->first();
+    
         switch ($step) {
 
             case 1:
@@ -119,26 +126,89 @@ public function showStep($step)
 
                 $person = Person::where('user_id', $user->id)->orderByDesc('id')->first();
                 $person->update($validated);
+                 $dossier = Dossier::where('person_id', $person->id)->first();
+             //   return redirect()->route('profile.step', 4);
 
-                return redirect()->route('profile.step', 4);
+                //  return view('profile.steps',4, compact('dossier'));
+              return redirect()
+    ->route('profile.step', 4)
+    ->with('dossier', $dossier);
 
+case 4:
 
+    // ================== استرجاع الشخص والملف ==================
+    $person = Person::where('user_id', $user->id)
+        ->orderByDesc('id')
+        ->firstOrFail();
 
-            case 4:
+    $dossier = Dossier::where('person_id', $person->id)->first();
 
+    // ================== حساب العمر ==================
+    $age = \Carbon\Carbon::parse($person->birth_date)->age;
+    $isMinor = $age < 18;
 
-    // استرجاع الشخص المرتبط بالمستخدم
-    $person = Person::where('user_id', $user->id)->orderByDesc('id')->first();
+    // ================== الوثائق الموجودة مسبقًا ==================
+    $existingAttachments = ($dossier && $dossier->attachments)
+        ? (is_array($dossier->attachments)
+            ? $dossier->attachments
+            : json_decode($dossier->attachments, true))
+        : [];
 
-    // --- قواعد التحقق الديناميكية ---
+    // ================== Helper required / nullable ==================
+    $req = function ($key, $rule) use ($existingAttachments) {
+        return empty($existingAttachments[$key])
+            ? "required|$rule"
+            : "nullable|$rule";
+    };
+
+    // ================== Validation ديناميكي ==================
     $rules = [
-        'photo' => ($person && $person->photo ? 'nullable' : 'required') . '|image|mimes:jpg,jpeg,png|max:2048',
-        'birth_certificate' => ($person && $person->birth_certificate ? 'nullable' : 'required') . '|mimes:pdf|max:4096',
+        // للجميع
+        'medical_certificate' => $req(
+            'medical_certificate',
+            'file|mimes:pdf,jpg,jpeg,png|max:4096'
+        ),
+
+        // 👈 التعهّد للجميع
+        'engagement' => $req(
+            'engagement',
+            'file|mimes:pdf,jpg,png|max:4096'
+        ),
+
+        // 👈 الصورة للجميع
+        'photo' => $req(
+            'photo',
+            'image|mimes:jpg,jpeg,png|max:2048'
+        ),
     ];
+
+    if ($isMinor) {
+        $rules += [
+            'birth_certificate' => $req(
+                'birth_certificate',
+                'file|mimes:pdf|max:4096'
+            ),
+            'parental_authorization' => $req(
+                'parental_authorization',
+                'file|mimes:pdf,jpg,png|max:4096'
+            ),
+            'guardian_id_card' => $req(
+                'guardian_id_card',
+                'file|mimes:pdf,jpg,png|max:4096'
+            ),
+        ];
+    } else {
+        $rules += [
+            'national_id_card' => $req(
+                'national_id_card',
+                'file|mimes:pdf,jpg,png|max:4096'
+            ),
+        ];
+    }
 
     $request->validate($rules);
 
-    // --- تحديد مسار التخزين ---
+    // ================== تحديد مسار التخزين ==================
     if (app()->environment('local')) {
         $storagePath = storage_path('app/public');
         $storageUrl  = '/storage';
@@ -147,60 +217,89 @@ public function showStep($step)
         $storageUrl  = rtrim(env('PUBLIC_STORAGE_URL'), '/');
     }
 
-    $attachments = [];
+    // ================== Helper رفع الملفات ==================
+    $upload = function ($field, $folder) use ($request, $storagePath, $storageUrl) {
+        if (!$request->hasFile($field)) {
+            return null;
+        }
 
-    // --- رفع الصورة الشخصية ---
-    if ($request->hasFile('photo')) {
-        $photoName = time() . '_' . $request->file('photo')->getClientOriginalName();
-        $request->file('photo')->move($storagePath . '/photos', $photoName);
+        $file = $request->file($field);
+        $fileName = time() . '_' . $file->getClientOriginalName();
+        $file->move($storagePath . '/' . $folder, $fileName);
 
-        $savedPath = $storageUrl . '/photos/' . $photoName;
+        return $storageUrl . '/' . $folder . '/' . $fileName;
+    };
 
-        $attachments['photo'] = $savedPath;
-        $person->photo = $savedPath;
+    // ================== دمج الوثائق القديمة + الجديدة ==================
+    $attachments = $existingAttachments;
+
+    // للجميع
+    if ($path = $upload('medical_certificate', 'documents')) {
+        $attachments['medical_certificate'] = $path;
     }
 
-    // --- رفع شهادة الميلاد ---
-    if ($request->hasFile('birth_certificate')) {
-        $fileName = time() . '_' . $request->file('birth_certificate')->getClientOriginalName();
-        $request->file('birth_certificate')->move($storagePath . '/documents', $fileName);
-
-        $savedPath = $storageUrl . '/documents/' . $fileName;
-
-        $attachments['birth_certificate'] = $savedPath;
-        $person->birth_certificate = $savedPath;
+    if ($path = $upload('engagement', 'documents')) {
+        $attachments['engagement'] = $path;
     }
 
-    // حفظ التعديلات
+    if ($path = $upload('photo', 'photos')) {
+        $attachments['photo'] = $path;
+        $person->photo = $path;
+    }
+
+    if ($isMinor) {
+
+        if ($path = $upload('birth_certificate', 'documents')) {
+            $attachments['birth_certificate'] = $path;
+            $person->birth_certificate = $path;
+        }
+
+        if ($path = $upload('parental_authorization', 'documents')) {
+            $attachments['parental_authorization'] = $path;
+        }
+
+        if ($path = $upload('guardian_id_card', 'documents')) {
+            $attachments['guardian_id_card'] = $path;
+        }
+
+    } else {
+
+        if ($path = $upload('national_id_card', 'documents')) {
+            $attachments['national_id_card'] = $path;
+        }
+    }
+
+    // ================== حفظ الشخص ==================
     $person->save();
 
+    // ================== حفظ dossier ==================
+    Dossier::updateOrCreate(
+        ['person_id' => $person->id],
+        [
+            'etat'        => 'pending',
+            'attachments' => json_encode($attachments, JSON_UNESCAPED_UNICODE),
+            'owner_type'  => $type,
+            'note_admin'  => '📌 تم رفع الوثائق وجاري التحقق منها',
+        ]
+    );
 
-    // --- تحديث أو إنشاء سجل dossier ---
-    if (!empty($attachments)) {
-        Dossier::updateOrCreate(
-            ['person_id' => $person->id],
-            [
-                'etat'        => 'pending',
-                'attachments' => json_encode($attachments),
-                'owner_type'  => $type,
-                'note_admin'  => '📌 تم رفع الوثائق وجاري التحقق منها'
-            ]
-        );
-    }
-
-
-    // --- تحديد وجهة التحويل ---
+    // ================== التوجيه النهائي ==================
     $route = match ($user->type) {
         'admin'   => 'admin.dashboard',
         'club'    => 'club.dashboard',
         'company' => 'entreprise.dashboard',
-        default   => 'person.dashboard'
+        default   => 'person.dashboard',
     };
 
-    
+    return redirect()
+        ->route($route)
+        ->with('success', '✔ تم استكمال البيانات بنجاح 🎉');
+
+break;
 
 
-                return redirect()->route($route)->with('success','✔ تم استكمال البيانات بنجاح 🎉');
+
+            //    return redirect()->route($route)->with('success','✔ تم استكمال البيانات بنجاح 🎉');
         }
     }
 public function newPerson()

@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\capacityController ;
 use App\Http\Controllers\Admin\ScheduleController ;
 use App\Http\Controllers\Admin\AgeCategoryController;
 
+
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\ClubAuthController;
 use App\Http\Controllers\Auth\CompanyAuthController;
@@ -144,10 +145,10 @@ Route::get('/person/profile/edit', [RegisterController::class, 'edit'])->name('p
 Route::middleware(['auth','club'])->group(function () {
     Route::get('/club/dashboard', [DashboardController::class, 'index'])->name('club.dashboard');
   
-    Route::get('/club/persons/{type}', [PersonController::class, 'index'])
+    Route::get('/club/persons/', [PersonController::class, 'index'])
         ->name('club.persons.index');
 
-Route::get('/club/persons/edit/{id}', [PersonController::class, 'edit'])
+   Route::get('/club/persons/edit/{id}', [PersonController::class, 'edit'])
         ->name('club.persons.edit');
 
     Route::post('/club/persons/update/{id}', [PersonController::class, 'update'])
@@ -156,10 +157,15 @@ Route::get('/club/persons/edit/{id}', [PersonController::class, 'edit'])
     Route::delete('/club/persons/delete/{id}', [PersonController::class, 'destroy'])
         ->name('club.persons.delete');
 
-        Route::get('/club/profile/edit', [RegisterController::class, 'edit'])->name('club.profile.edit');
+       
+   Route::post('/club/persons/store', [PersonController::class, 'store'])
+            ->name('club.persons.store');
+        
+    Route::get('/club/persons/create', [PersonController::class, 'create'])
+        ->name('club.persons.create');
 
-            Route::put('/club/profile/update', [RegisterController::class, 'update'])
-        ->name('club.profile.update');
+
+ Route::get('/club/profile/edit', [RegisterController::class, 'edit'])->name('club.profile.edit');
 
 });
 
@@ -311,9 +317,15 @@ Route::delete('/admin/capacities/{id}', [CapacityController::class, 'destroy'])
     Route::get('/admin/pricing/{id}/edit', [PricingsPlanController::class, 'edit'])->name('admin.pricing_plans.edit');
     Route::put('/admin/pricing/{id}', [PricingsPlanController::class, 'update'])->name('admin.pricing_plans.update');
     Route::delete('/admin/pricing/{id}', [PricingsPlanController::class, 'destroy'])->name('admin.pricing_plans.destroy');
+// mise à jour ملاحظة dossier
+
+Route::post(
+    'admin/dossiers/{dossier}/note',
+    [DossierController::class, 'updateNote']
+)->name('admin.dossiers.note');
 
 
-    Route::resource('/admin/age-categories', AgeCategoryController::class);
+Route::resource('/admin/age-categories', AgeCategoryController::class);
  Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])
     ->middleware('auth')
     ->name('admin.dashboard');
