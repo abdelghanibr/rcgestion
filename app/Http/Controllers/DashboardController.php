@@ -22,7 +22,11 @@ class DashboardController extends Controller
     // 👤 الحالة 1: شخص
    
     // حالة غير متوقعة!
+
+    $club = \App\Models\Club::where('user_id', auth()->id())->first();
    
+
+
 
         /* ---------------------------------
         | 📌 Dashboard النادي
@@ -50,7 +54,8 @@ class DashboardController extends Controller
             'playersCount' => $playersCount,
             'coachsCount' => $coachsCount,
             'managersCount' => $managersCount ,
-             'dossier' =>$dossier
+             'dossier' =>$dossier ,
+             'club' => $club
         ]);
         }
 

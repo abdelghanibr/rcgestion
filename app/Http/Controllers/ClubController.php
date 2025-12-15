@@ -39,4 +39,39 @@ class ClubController extends Controller
 
         return back()->with('error','تم رفض النادي ❌');
     }
+
+    public function update(Request $request)
+{
+    $club = Auth::user()->club;
+
+    $attachments = $club->attachments ?? [];
+
+    $fields = [
+        'club_accreditation',      // اعتماد النادي
+        'club_statute',            // القانون الأساسي
+        'management_list',         // قائمة أعضاء المكتب
+        'coaches_certificates',    // شهادات المدربين
+        'federation_membership',   // شهادة الانخراط
+        'insurance_certificate',   // شهادة التأمين
+        'terms_register',          // دفتر الشروط
+        'agreement_register',      // دفتر الاتفاقية
+        'exploitation_request',    // طلب الاستغلال
+    ];
+
+    foreach ($fields as $field) {
+        if ($request->hasFile($field)) {
+
+            $path = $request->file($field)
+                ->store("clubs/{$club->id}", 'public');
+
+            $attachments[$field] = Storage::url($path);
+        }
+    }
+
+    $club->update([
+        'attachments' => $attachments,
+    ]);
+
+    return back()->with('success', '✅ تم تحديث ملف النادي بنجاح');
+}
 }

@@ -31,6 +31,9 @@ class Person extends Model
     'parent_relation',
     'age_category_id',
     'club_id'
+
+
+     
     //'entreprise_id'
 ];
 

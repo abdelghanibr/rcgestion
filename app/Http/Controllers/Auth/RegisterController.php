@@ -29,7 +29,7 @@ public function edit()
             return view('admin.profile.edit', compact('user'));
 
         case 'club':
-            return view('club.persons.edit', compact('user'));
+            return view('club.profile.edit', compact('user'));
 
         case 'person':
             return view('person.profile.edit', compact('user'));
@@ -51,7 +51,8 @@ public function update(Request $request)
         'name' => 'required|string|max:255',
         'email' => 'required|email|unique:users,email,' . $user->id,
         'phone' => 'nullable|string|max:20',
-        'photo' => 'nullable|image|max:2048',
+        'password' => 'nullable|confirmed|min:8',
+       // 'photo' => 'nullable|image|max:2048',
     ]);
 
     // 🔹 تحديث الحقول العامة
@@ -59,16 +60,20 @@ public function update(Request $request)
     $user->email = $request->email;
     $user->phone = $request->phone;
 
+       if ($request->filled('password')) {
+        $user->password = Hash::make($request->password);
+    }
+
     // 🔹 حفظ الصورة إن وُجدت
-    if ($request->hasFile('photo')) {
+    /*if ($request->hasFile('photo')) {
         // حذف الصورة القديمة إن وجدت
         if($user->photo && \Storage::disk('public')->exists($user->photo)){
             \Storage::disk('public')->delete($user->photo);
         }
 
         $path = $request->photo->store('users', 'public');
-        $user->photo = $path;
-    }
+      //  $user->photo = $path;
+    }*/
 
     // ========================
     // 🔥 حسب نوع المستخدم

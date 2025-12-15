@@ -25,6 +25,7 @@ use App\Http\Controllers\Auth\ClubAuthController;
 use App\Http\Controllers\Auth\CompanyAuthController;
 use App\Http\Controllers\Auth\PersonAuthController;
 
+
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ClubController; 
 
@@ -32,6 +33,8 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\HomeController;
 
  use App\Http\Controllers\PricingPlanController ;
+ 
+ use App\Http\Controllers\ClubDossierController;
 /*
 |--------------------------------------------------------------------------
 | PAGE D'ACCUEIL PUBLIQUE (SANS AUTH)
@@ -163,9 +166,22 @@ Route::middleware(['auth','club'])->group(function () {
         
     Route::get('/club/persons/create', [PersonController::class, 'create'])
         ->name('club.persons.create');
-
+// profile du club
 
  Route::get('/club/profile/edit', [RegisterController::class, 'edit'])->name('club.profile.edit');
+  Route::put('/club/profile/update', [RegisterController ::class, 'update'])
+        ->name('club.profile.update');
+        // dossier du club
+ Route::get('/club/dossier', [ClubDossierController::class, 'index'])
+        ->name('club.dossier.index');
+
+    Route::get('/club/dossier/edit', [ClubDossierController::class, 'edit'])
+        ->name('club.dossier.edit');
+
+    Route::put('/club/dossier/update', [ClubDossierController::class, 'update'])
+        ->name('club.dossier.update');
+
+ 
 
 });
 
