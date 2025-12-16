@@ -1,11 +1,11 @@
-
 @extends('layouts.app')
 
 @section('content')
 <div class="container py-4" style="direction:rtl;text-align:right;max-width:1000px">
 
-    <h3 class="fw-bold mb-4">📁 ملف النادي</h3>
+    <h3 class="fw-bold mb-4">📁 ملف المؤسسة</h3>
 
+    {{-- رسالة نجاح --}}
     @if(session('success'))
         <div class="alert alert-success text-center fw-bold">
             {{ session('success') }}
@@ -14,19 +14,18 @@
 
     @php
         // المرفقات
-        $files = json_decode($club->attachments, true) ?? [];
+        $files = json_decode($enterprise->attachments ?? '[]', true) ?? [];
 
-        // 🔁 ترجمة أسماء الوثائق
+        // 🔁 ترجمة أسماء وثائق المؤسسة
         $documentsLabels = [
-            'agreement'              => 'اعتماد النادي',
-            'statut'                 => 'القانون الأساسي',
-            'bureau_members'         => 'قائمة أعضاء المكتب المسير',
-            'coaches_certificates'   => 'شهادات المدربين',
-            'federation_affiliation' => 'شهادة الانخراط في الرابطة',
-            'insurance_certificate'  => 'شهادة التأمين الخاصة بالرياضيين والمسيرين',
+            'registre_commerce'      => 'السجل التجاري',
+            'statut'                 => 'القانون الأساسي للمؤسسة',
+            'tax_number'             => 'البطاقة الجبائية',
+            'bank_rib'               => 'شهادة RIB بنكي',
+            'insurance_certificate'  => 'شهادة التأمين',
             'rules_book'             => 'دفتر الشروط',
-            'minutes_meeting'        => 'محضر الجمعية العامة',
-            'exploitation_request'  => 'طلب الاستغلال',
+            'minutes_meeting'        => 'محضر الجمعية (إن وجد)',
+            'exploitation_request'   => 'طلب الاستغلال',
         ];
     @endphp
 
@@ -62,9 +61,11 @@
     </table>
 
     <div class="mt-4 d-flex justify-content-between align-items-center">
+
      
 
-        <a href="{{ route('club.dossier.edit') }}"
+        {{-- زر التعديل --}}
+        <a href="{{ route('entreprise.dossier.edit') }}"
            class="btn btn-primary">
            ✏️ تعديل الملف
         </a>

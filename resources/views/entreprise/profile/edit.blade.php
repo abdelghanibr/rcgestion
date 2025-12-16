@@ -1,45 +1,146 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container py-4" style="direction: rtl; text-align:right;">
+<div class="container py-5" style="direction: rtl; text-align:right; max-width:900px;">
 
-    <h3 class="mb-4 fw-bold">🏢 تعديل ملف الشركة</h3>
+    {{-- Header --}}
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h3 class="fw-bold text-success mb-0">
+            🏢 تعديل بيانات المؤسسة
+        </h3>
+    </div>
 
+    {{-- Success --}}
     @if(session('success'))
-        <div class="alert alert-success text-center fw-bold">{{ session('success') }}</div>
+        <div class="alert alert-success text-center fw-bold shadow-sm">
+            {{ session('success') }}
+        </div>
     @endif
 
-    <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
-        @csrf
-        @method('PUT')
+    {{-- Card --}}
+    <div class="card border-0 shadow-lg rounded-4">
+        <div class="card-body p-4 p-md-5">
 
-        {{-- اسم الشركة --}}
-        <label class="form-label fw-bold">اسم الشركة</label>
-        <input type="text" name="name" class="form-control mb-3"
-               value="{{ $user->name }}" required>
+            <form action="{{ route('entreprise.profile.update') }}"
+                  method="POST"
+                  enctype="multipart/form-data">
+                @csrf
+                @method('PUT')
 
-        {{-- البريد --}}
-        <label class="form-label fw-bold">البريد الإلكتروني</label>
-        <input type="email" name="email" class="form-control mb-3"
-               value="{{ $user->email }}" required>
+                {{-- ================= بيانات المؤسسة ================= --}}
+                <h5 class="fw-bold mb-3 text-secondary">
+                    📋 المعلومات الأساسية
+                </h5>
 
-        {{-- الهاتف --}}
-        <label class="form-label fw-bold">الهاتف</label>
-        <input type="text" name="phone" class="form-control mb-3"
-               value="{{ $user->phone }}">
+                <div class="row g-3">
 
-        {{-- الشعار --}}
-        <label class="form-label fw-bold">الشعار / Logo</label>
-        <input type="file" name="photo" class="form-control mb-3">
+                    {{-- اسم المؤسسة --}}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">اسم المؤسسة</label>
+                        <input type="text"
+                               name="name"
+                               class="form-control form-control-lg"
+                               value="{{ $user->name }}"
+                               required>
+                    </div>
 
-        @if($user->photo)
-            <img src="{{ asset('storage/'.$user->photo) }}" width="80" class="rounded mb-3">
-        @endif
+                    {{-- البريد الإلكتروني --}}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">البريد الإلكتروني</label>
+                        <input type="email"
+                               name="email"
+                               class="form-control form-control-lg"
+                               value="{{ $user->email }}"
+                               required>
+                    </div>
 
-        <button class="btn btn-success fw-bold px-4">💾 تحديث</button>
-        <a href="{{ url()->previous() }}" class="btn btn-secondary px-4">رجوع</a>
+                    {{-- الهاتف --}}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">رقم الهاتف</label>
+                        <input type="text"
+                               name="phone"
+                               class="form-control form-control-lg"
+                               value="{{ $user->phone }}">
+                    </div>
 
-    </form>
+                    {{-- العنوان (اختياري إن وجد عندك) --}}
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">عنوان المؤسسة</label>
+                        <input type="text"
+                               name="address"
+                               class="form-control form-control-lg"
+                               value="{{ $user->address ?? '' }}">
+                    </div>
 
+                </div>
+
+                {{-- ================= كلمة المرور ================= --}}
+                <hr class="my-5">
+
+                <h5 class="fw-bold mb-3 text-secondary">
+                    🔐 تغيير كلمة المرور
+                    <small class="text-muted">(اختياري)</small>
+                </h5>
+
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">كلمة المرور الجديدة</label>
+                        <div class="input-group input-group-lg">
+                            <input type="password"
+                                   name="password"
+                                   id="password"
+                                   class="form-control"
+                                   placeholder="اتركها فارغة إذا لا تريد التغيير">
+                            <button type="button"
+                                    class="btn btn-outline-secondary"
+                                    onclick="togglePassword('password')">
+                                👁
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">تأكيد كلمة المرور</label>
+                        <div class="input-group input-group-lg">
+                            <input type="password"
+                                   name="password_confirmation"
+                                   id="password_confirmation"
+                                   class="form-control"
+                                   placeholder="إعادة كتابة كلمة المرور">
+                            <button type="button"
+                                    class="btn btn-outline-secondary"
+                                    onclick="togglePassword('password_confirmation')">
+                                👁
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                {{-- ================= Actions ================= --}}
+                <div class="d-flex justify-content-between align-items-center mt-5">
+                    <a href="{{ url()->previous() }}"
+                       class="btn btn-outline-secondary btn-lg px-4">
+                        ⬅ رجوع
+                    </a>
+
+                    <button class="btn btn-success btn-lg px-5 fw-bold shadow">
+                        💾 تحديث البيانات
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
 </div>
+
+{{-- JS --}}
+<script>
+function togglePassword(id) {
+    const input = document.getElementById(id);
+    input.type = input.type === 'password' ? 'text' : 'password';
+}
+</script>
 @endsection

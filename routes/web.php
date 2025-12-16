@@ -35,6 +35,8 @@ use App\Http\Controllers\HomeController;
  use App\Http\Controllers\PricingPlanController ;
  
  use App\Http\Controllers\ClubDossierController;
+ use App\Http\Controllers\EntrepriseDossierController;
+
 /*
 |--------------------------------------------------------------------------
 | PAGE D'ACCUEIL PUBLIQUE (SANS AUTH)
@@ -143,8 +145,6 @@ Route::get('/person/profile/edit', [RegisterController::class, 'edit'])->name('p
 
 // ⭐ Dashboard Club
 
-
-// ⭐ Dashboard Club
 Route::middleware(['auth','club'])->group(function () {
     Route::get('/club/dashboard', [DashboardController::class, 'index'])->name('club.dashboard');
   
@@ -172,7 +172,7 @@ Route::middleware(['auth','club'])->group(function () {
   Route::put('/club/profile/update', [RegisterController ::class, 'update'])
         ->name('club.profile.update');
         // dossier du club
- Route::get('/club/dossier', [ClubDossierController::class, 'index'])
+    Route::get('/club/dossier', [ClubDossierController::class, 'index'])
         ->name('club.dossier.index');
 
     Route::get('/club/dossier/edit', [ClubDossierController::class, 'edit'])
@@ -190,7 +190,7 @@ Route::middleware(['auth','entreprise'])->group(function () {
     Route::get('/entreprise/dashboard', [DashboardController::class, 'index'])->name('entreprise.dashboard');
     
     
-    Route::get('/entreprise/persons/{type}', [PersonController::class, 'index'])
+    Route::get('/entreprise/persons', [PersonController::class, 'index'])
         ->name('entreprise.persons.index');
 
     Route::get('/entreprise/persons/edit/{id}', [PersonController::class, 'edit'])
@@ -202,11 +202,27 @@ Route::middleware(['auth','entreprise'])->group(function () {
 
     // 📌 حذف
     Route::delete('/entreprise/persons/delete/{id}', [PersonController::class, 'destroy'])
-        ->name('entreprise.persons.delete');     
+        ->name('entreprise.persons.delete');    
+        
+      Route::post('/entreprise/persons/store', [PersonController::class, 'store'])
+            ->name('entreprise.persons.store');
+        
+    Route::get('/entreprise/persons/create', [PersonController::class, 'create'])
+        ->name('entreprise.persons.create');   
 
         Route::get('/entreprise/profile/edit', [RegisterController::class, 'edit'])->name('entreprise.profile.edit');
             Route::put('/entreprise/profile/update', [RegisterController::class, 'update'])
         ->name('entreprise.profile.update');
+
+    Route::get('/entreprise/dossier', [EntrepriseDossierController::class, 'index'])
+        ->name('entreprise.dossier.index');
+
+    Route::get('/entreprise/dossier/edit', [EntrepriseDossierController::class, 'edit'])
+        ->name('entreprise.dossier.edit');
+
+    Route::put('/entreprise/dossier/update', [EntrepriseDossierController::class, 'update'])
+        ->name('entreprise.dossier.update');
+
 });
 
 
@@ -251,6 +267,11 @@ Route::get('/admin/profile/edit', [RegisterController::class, 'edit'] )->name('a
 
     Route::get('/admin/clubs/{id}/reject', [ClubController::class, 'reject'])
         ->name('admin.clubs.reject');
+
+
+
+
+Route::post('admin/clubs/{id}/note', [ClubController::class, 'note'])->name('admin.clubs.note');
 
 //activite et complex et pricing pla 
 
@@ -339,6 +360,7 @@ Route::post(
     'admin/dossiers/{dossier}/note',
     [DossierController::class, 'updateNote']
 )->name('admin.dossiers.note');
+
 
 
 Route::resource('/admin/age-categories', AgeCategoryController::class);

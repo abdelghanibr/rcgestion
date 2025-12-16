@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Club;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Http\Request; 
 class ClubController extends Controller
 {
     public function index()
@@ -74,4 +74,27 @@ class ClubController extends Controller
 
     return back()->with('success', '✅ تم تحديث ملف النادي بنجاح');
 }
+
+public function updateNote(Request $request, Dossier $dossier)
+{
+    $request->validate([
+        'note_admin' => 'required|string|max:1000',
+    ]);
+
+    $club->update([
+        'note_admin' => $request->note_admin,
+    ]);
+
+    return back()->with('success', '✔ تم حفظ الملاحظة بنجاح');
+}
+
+public function note(Request $request, $id)
+    {
+        $club = Club::findOrFail($id);
+        $club->note_admin = $request->input('note_admin');
+        $club->save();
+
+        return redirect()->route('admin.clubs.index')->with('success', 'Note ajoutée avec succès!');
+    }
+
 }
