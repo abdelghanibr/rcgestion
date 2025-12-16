@@ -139,6 +139,56 @@ class ScheduleController extends Controller
     }
 
 
+
+public function occupiedSlots(Request $request)
+{
+    $request->validate([
+        'complex_id'  => 'required|integer',
+        'activity_id' => 'required|integer',
+    ]);
+
+    // 🔗 إيجاد complex_activity_id
+    $complexActivity = ComplexActivity::where('complex_id', $request->complex_id)
+        ->where('activity_id', $request->activity_id)
+        ->first();
+
+    if (!$complexActivity) {
+        return response()->json([]);
+    }
+
+    // 📦 جلب الجداول المرتبطة
+    $schedules = Schedule::where('complex_activity_id', $complexActivity->id)
+        ->whereNotNull('time_slots')
+        ->get();
+
+    $events = [];
+
+    foreach ($schedules as $schedule) {
+        $slots = json_decode($schedule->time_slots, true);
+
+        if (!is_array($slots)) continue;
+
+        foreach ($slots as $slot) {
+
+            // day_number: 0=الأحد ... 6=السبت
+            $events[] = [
+                'daysOfWeek' => [(int)$slot['day_number']],
+                'startTime'  => $slot['start'],
+                'endTime'    => $slot['end'],
+                'display'    => 'background',
+                'backgroundColor' => '#dc3545',
+                'borderColor'     => '#dc3545',
+                'extendedProps' => [
+                    'groupe' => $schedule->groupe, // 👈 اسم المجموعة
+                ],
+            ];
+        }
+    }
+
+    return response()->json($events);
+}
+
+
     /**
      * تعديل الجدول
      */

@@ -137,7 +137,7 @@
 @endsection
 
 
-@push('styles')
+@push('css')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
 <style>
 .selected-slot {
@@ -149,7 +149,7 @@
 @endpush
 
 
-@push('scripts')
+@push('js')
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
 <script>

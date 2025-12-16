@@ -47,6 +47,48 @@
             </div>
         </div>
     </div>
+
+
+    <div class="row g-4">
+
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-body text-center">
+                <h6 class="text-muted">📋 إجمالي الحجوزات</h6>
+                <h2 class="fw-bold text-primary">{{ $stats['total'] }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-body text-center">
+                <h6 class="text-muted">💳 مدفوعة</h6>
+                <h2 class="fw-bold text-success">{{ $stats['paid'] }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-body text-center">
+                <h6 class="text-muted">⏳ قيد الانتظار</h6>
+                <h2 class="fw-bold text-warning">{{ $stats['pending'] }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0">
+            <div class="card-body text-center">
+                <h6 class="text-muted">❌ ملغاة</h6>
+                <h2 class="fw-bold text-danger">{{ $stats['cancelled'] }}</h2>
+            </div>
+        </div>
+    </div>
+
+</div>
+
     <div class="dash-box mt-4">
     <h4 class="mb-3">📌 حالة ملفك</h4>
 

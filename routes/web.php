@@ -36,6 +36,7 @@ use App\Http\Controllers\HomeController;
  
  use App\Http\Controllers\ClubDossierController;
  use App\Http\Controllers\EntrepriseDossierController;
+ use App\Http\Controllers\Admin\SeasonController;
 
 /*
 |--------------------------------------------------------------------------
@@ -145,7 +146,8 @@ Route::get('/person/profile/edit', [RegisterController::class, 'edit'])->name('p
 
 // ⭐ Dashboard Club
 
-Route::middleware(['auth','club'])->group(function () {
+Route::middleware(['auth','club'])->group(function ()
+ {
     Route::get('/club/dashboard', [DashboardController::class, 'index'])->name('club.dashboard');
   
     Route::get('/club/persons/', [PersonController::class, 'index'])
@@ -166,7 +168,7 @@ Route::middleware(['auth','club'])->group(function () {
         
     Route::get('/club/persons/create', [PersonController::class, 'create'])
         ->name('club.persons.create');
-// profile du club
+ // profile du club
 
  Route::get('/club/profile/edit', [RegisterController::class, 'edit'])->name('club.profile.edit');
   Route::put('/club/profile/update', [RegisterController ::class, 'update'])
@@ -208,10 +210,12 @@ Route::middleware(['auth','entreprise'])->group(function () {
             ->name('entreprise.persons.store');
         
     Route::get('/entreprise/persons/create', [PersonController::class, 'create'])
-        ->name('entreprise.persons.create');   
+        ->name('entreprise.persons.create'); 
+        
+        
 
         Route::get('/entreprise/profile/edit', [RegisterController::class, 'edit'])->name('entreprise.profile.edit');
-            Route::put('/entreprise/profile/update', [RegisterController::class, 'update'])
+        Route::put('/entreprise/profile/update', [RegisterController::class, 'update'])
         ->name('entreprise.profile.update');
 
     Route::get('/entreprise/dossier', [EntrepriseDossierController::class, 'index'])
@@ -231,17 +235,23 @@ Route::middleware(['auth','entreprise'])->group(function () {
 Route::middleware(['auth','admin'])->group(function () {
 
 
-Route::get('/admin/profile/edit', [RegisterController::class, 'edit'] )->name('admin.profile.edit');
-
-  Route::put('/admin/profile/update', [RegisterController::class, 'update'])->name('admin.profile.update');
 
 
-  
+Route::resource('seasons', SeasonController::class);
 
 
 
+// جدول المواعيد المحجوزة
+Route::get('/admin/schedules/occupied', 
+    [\App\Http\Controllers\Admin\ScheduleController::class, 'occupiedSlots']
+)->name('admin.schedules.occupied');
+// routes/web.php
+Route::get('/admin/schedules/occupied-slots', [\App\Http\Controllers\Admin\ScheduleController::class, 'occupiedSlots']);
 
+    
+    Route::get('/admin/profile/edit', [RegisterController::class, 'edit'] )->name('admin.profile.edit');
 
+    Route::put('/admin/profile/update', [RegisterController::class, 'update'])->name('admin.profile.update');
     Route::get('admins', [AdminController::class, 'adminsIndex'])->name('admins.index');
     Route::get('admins/create', [AdminController::class, 'adminsCreate'])->name('admins.create');
     Route::post('admins/store', [AdminController::class, 'adminsStore'])->name('admins.store');
@@ -257,7 +267,6 @@ Route::get('/admin/profile/edit', [RegisterController::class, 'edit'] )->name('a
     Route::get('/admin/dossiers/{id}/reject', [DossierController::class, 'reject'])->name('admin.dossiers.reject');
 
 // club et validation 
- 
     
     Route::get('/admin/clubs', [ClubController::class, 'index'])
         ->name('admin.clubs.index');
@@ -268,13 +277,9 @@ Route::get('/admin/profile/edit', [RegisterController::class, 'edit'] )->name('a
     Route::get('/admin/clubs/{id}/reject', [ClubController::class, 'reject'])
         ->name('admin.clubs.reject');
 
-
-
-
 Route::post('admin/clubs/{id}/note', [ClubController::class, 'note'])->name('admin.clubs.note');
 
 //activite et complex et pricing pla 
-
 // gestion des activités
     Route::get('/admin/activities', [ActivitysController::class, 'index'])->name('admin.activities.index');
     Route::get('/admin/activities/create', [ActivitysController::class, 'create'])->name('admin.activities.create');
@@ -283,7 +288,6 @@ Route::post('admin/clubs/{id}/note', [ClubController::class, 'note'])->name('adm
     Route::put('/admin/activities/{id}', [ActivitysController::class, 'update'])->name('admin.activities.update');
     Route::delete('/admin/activities/{id}', [ActivitysController::class, 'destroy'])->name('admin.activities.destroy');
 
-
 // gestion des horaires (schedules)
 Route::get('/admin/schedules', [ScheduleController::class, 'index'])->name('admin.schedules.index');
 Route::get('/admin/schedules/create', [ScheduleController::class, 'create'])->name('admin.schedules.create');
@@ -291,7 +295,6 @@ Route::post('/admin/schedules', [ScheduleController::class, 'store'])->name('adm
 Route::get('/admin/schedules/{id}/edit', [ScheduleController::class, 'edit'])->name('admin.schedules.edit');
 Route::put('/admin/schedules/{id}', [ScheduleController::class, 'update'])->name('admin.schedules.update');
 Route::delete('/admin/schedules/{id}', [ScheduleController::class, 'destroy'])->name('admin.schedules.destroy');
-
 Route::get('/admin/get-complex-activity', function (Request $request) {
     $ca = \App\Models\ComplexActivity::where('complex_id', $request->complex_id)
         ->where('activity_id', $request->activity_id)
@@ -322,19 +325,14 @@ Route::put('/admin/capacities/{id}', [CapacityController::class, 'update'])
 Route::delete('/admin/capacities/{id}', [CapacityController::class, 'destroy'])
     ->name('admin.capacities.destroy');
 
-
-
-
 // gestion des complexes
    Route::get('/admin/complexes', [ComplexeController::class, 'index'])
         ->name('admin.complexes.index');
     Route::get('/admin/complexes/create', [ComplexController::class, 'create'])
         ->name('admin.complexes.create');
 
-
     Route::post('/admin/complexes', [ComplexController::class, 'store'])
         ->name('admin.complexes.store');
-
     // تعديل مركب
     Route::get('/admin/complexes/{id}/edit', [ComplexController::class, 'edit'])
         ->name('admin.complexes.edit');

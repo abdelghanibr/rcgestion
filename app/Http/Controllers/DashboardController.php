@@ -117,4 +117,41 @@ class DashboardController extends Controller
         'personsCount' => Person::count()
     ]);
 }
+
+
+public function dashboardStats()
+{
+    $user = Auth::user();
+
+    $query = Reservation::query();
+
+    /*
+    |--------------------------------------------------------------------------
+    | 🔐 تصفية حسب نوع المستخدم
+    |--------------------------------------------------------------------------
+    */
+    if ($user->type === 'club' || $user->type === 'company' || $user->type === 'entreprise') {
+        // الحجوزات المرتبطة بالمؤسسة
+        $query->where('user_id', $user->id);
+    }
+
+    if ($user->type === 'person') {
+        // حجوزات الشخص فقط
+        $query->where('user_id', $user->id);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | 📊 الإحصائيات
+    |--------------------------------------------------------------------------
+    */
+    $stats = [
+        'total'      => (clone $query)->count(),
+        'paid'       => (clone $query)->where('payment_status', 'paid')->count(),
+        'pending'    => (clone $query)->where('payment_status', 'pending')->count(),
+        'cancelled'  => (clone $query)->where('payment_status', 'cancelled')->count(),
+    ];
+
+    return view('dashboard.index', compact('stats'));
+}
 }

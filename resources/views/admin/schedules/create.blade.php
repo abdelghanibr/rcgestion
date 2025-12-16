@@ -4,17 +4,17 @@
 <div class="container py-4" style="direction: rtl; text-align:right;">
 
     <h3 class="fw-bold mb-4">➕ إضافة جدول جديد</h3>
-@if ($errors->any())
-    <div class="alert alert-danger fw-bold">
-        <ul class="mb-0">
-            @foreach ($errors->all() as $error)
-                <li>⚠ {{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-@endif
 
-    {{-- Form --}}
+    @if ($errors->any())
+        <div class="alert alert-danger fw-bold">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>⚠ {{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <form action="{{ route('admin.schedules.store') }}" method="POST" id="scheduleForm">
         @csrf
 
@@ -40,7 +40,6 @@
             </select>
         </div>
 
-        {{-- Complex Activity ID --}}
         <input type="hidden" name="complex_activity_id" id="complex_activity_id">
 
         {{-- الفئة العمرية --}}
@@ -69,7 +68,7 @@
             </select>
         </div>
 
-        {{-- عدد المقاعد --}}
+        {{-- عدد الأماكن --}}
         <div class="mb-3">
             <label class="fw-bold">عدد الأماكن</label>
             <input type="number" name="nbr" class="form-control">
@@ -90,24 +89,12 @@
             <input type="number" name="price" class="form-control">
         </div>
 
-        {{-- المستخدم (Club أو Company فقط) --}}
-        <div class="mb-3">
-            <label class="fw-bold">🔑 إسناد الجدول إلى (اختياري)</label>
-            <select name="user_id" class="form-control">
-                <option value="">— لا أحد —</option>
-                @foreach($users as $u)
-                    <option value="{{ $u->id }}">
-                        {{ $u->name }} ({{ $u->type }})
-                    </option>
-                @endforeach
-            </select>
-        </div>
-
         {{-- Time Slots --}}
         <input type="hidden" name="time_slots" id="time_slots">
 
         <div class="alert alert-info text-center fw-bold">
-            🗓️ اختر الأيام والساعات من التقويم أدناه
+            🟥 الأوقات الحمراء = مشغولة مسبقًا <br>
+            🟦 الأوقات الزرقاء = اختياراتك
         </div>
 
         <div class="card p-3 shadow-sm mb-4">
@@ -118,8 +105,10 @@
     </form>
 
 </div>
+
+
 @endsection
-@push('styles')
+@push('css')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
 
 <style>
@@ -158,46 +147,56 @@
 .fc-scroller-liquid {
     max-height: 620px !important; /* يمكنك تعديل الرقم */
 }
-
+.fc-bg-event {
+    background-color: #dc3545 !important;
+    opacity: 0.45 !important;
+}
 
 </style>
 @endpush
 
-@push('scripts')
+@push('js')
+
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
 <script>
-
 let selectedSlots = [];
+let calendar;
 
 function updateHiddenField() {
     document.getElementById("time_slots").value = JSON.stringify(selectedSlots);
 }
 
-// ⭐ إظهار/إخفاء السعر الثابت
-document.getElementById("type_prix").addEventListener("change", function () {
-    document.getElementById("fixed_price_box").style.display =
-        this.value === "fix" ? "block" : "none";
-});
-
 document.addEventListener('DOMContentLoaded', function () {
 
-    const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+    calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
         initialView: 'timeGridWeek',
         locale: 'ar',
         direction: 'rtl',
         firstDay: 0,
         selectable: true,
+        selectOverlap: false, // ❌ يمنع التداخل
         slotMinTime: "05:00:00",
         slotMaxTime: "23:00:00",
         slotDuration: "01:00:00",
         allDaySlot: false,
-        contentHeight: "auto",       // ❗ يمنع FullCalendar من تمديد آخر خط
-    height: "auto",              // ❗ يجعل الارتفاع حسب المحتوى فقط
-
-    expandRows: false,           // ❗ أهم سطر!! يمنع تمديد الصف الأخير نهائياً
+        expandRows: false,
+        height: "auto",
 
         select(info) {
+
+            // ❌ منع اختيار وقت مشغول
+            const conflict = calendar.getEvents().some(ev =>
+                ev.display === 'background' &&
+                info.start < ev.end &&
+                info.end > ev.start
+            );
+
+            if (conflict) {
+                alert('⛔ هذا التوقيت مشغول مسبقاً');
+                calendar.unselect();
+                return;
+            }
 
             const slot = {
                 day_number: new Date(info.start).getDay(),
@@ -210,7 +209,8 @@ document.addEventListener('DOMContentLoaded', function () {
             calendar.addEvent({
                 start: info.start,
                 end: info.end,
-                classNames: ['selected-slot']
+                classNames: ['selected-slot'],
+                title: 'توقيت مختار'
             });
 
             updateHiddenField();
@@ -218,8 +218,11 @@ document.addEventListener('DOMContentLoaded', function () {
         },
 
         eventClick(info) {
-            const start = info.event.startStr.slice(11,16);
-            selectedSlots = selectedSlots.filter(s => s.start !== start);
+            if (info.event.display === 'background') return;
+
+            selectedSlots = selectedSlots.filter(s =>
+                s.start !== info.event.startStr.slice(11,16)
+            );
             info.event.remove();
             updateHiddenField();
         }
@@ -228,21 +231,33 @@ document.addEventListener('DOMContentLoaded', function () {
     calendar.render();
 });
 
-// AJAX جلب complex_activity_id
-document.getElementById("complex").addEventListener("change", loadCombo);
-document.getElementById("activity").addEventListener("change", loadCombo);
+// ===============================
+// تحميل الأوقات المشغولة تلقائياً
+// ===============================
+document.getElementById("complex").addEventListener("change", loadOccupied);
+document.getElementById("activity").addEventListener("change", loadOccupied);
 
-function loadCombo() {
-    const c = document.getElementById("complex").value;
-    const a = document.getElementById("activity").value;
-    if (!c || !a) return;
+function loadOccupied() {
 
-    fetch(`/admin/get-complex-activity?complex_id=${c}&activity_id=${a}`)
-        .then(r => r.json())
-        .then(data => {
-            document.getElementById("complex_activity_id").value = data.id ?? "";
+    const complex = document.getElementById("complex").value;
+    const activity = document.getElementById("activity").value;
+
+    if (!complex || !activity) return;
+
+    // 🧹 حذف الأحداث السابقة
+    calendar.getEvents().forEach(e => e.remove());
+
+    fetch(`{{ route('admin.schedules.occupied') }}?complex_id=${complex}&activity_id=${activity}`)
+        .then(res => res.json())
+        .then(events => {
+
+            events.forEach(ev => {
+                calendar.addEvent(ev);
+            });
+
         });
 }
-
 </script>
+
+
 @endpush

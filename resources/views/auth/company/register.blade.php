@@ -15,6 +15,67 @@
             padding:40px; border-radius:18px;
             box-shadow:0 8px 25px rgba(0,0,0,0.12);
         }
+        /* ===============================
+   PRIVACY BLUE ZONE
+================================ */
+.privacy-zone{
+    background: linear-gradient(135deg, #0a4f88, #2563eb);
+    border-radius:18px;
+    padding:18px 20px;
+    color:#ffffff;
+    box-shadow:0 12px 30px rgba(0,0,0,.15);
+}
+
+.privacy-header{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:900;
+    font-size:15px;
+    margin-bottom:10px;
+}
+
+.privacy-header i{
+    font-size:20px;
+    color:#e0f2fe;
+}
+
+.privacy-content{
+    background:rgba(255,255,255,0.12);
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:14px;
+    line-height:1.8;
+}
+
+.privacy-content p{
+    margin-bottom:10px;
+    color:#f0f9ff;
+}
+
+.privacy-zone .form-check-input{
+    border:2px solid #e0f2fe;
+}
+
+.privacy-zone .form-check-input:checked{
+    background-color:#22c55e;
+    border-color:#22c55e;
+}
+
+.privacy-zone .form-check-label{
+    color:#ffffff;
+}
+
+.privacy-link{
+    color:#a7f3d0;
+    font-weight:900;
+    text-decoration:underline;
+}
+
+.privacy-link:hover{
+    color:#ffffff;
+}
+
     </style>
 </head>
 
@@ -66,6 +127,46 @@
             <div class="col-12">
                 <label><input type="checkbox" required> أؤكد أنني لست روبوت 🤖</label>
             </div>
+<div class="privacy-zone mt-4">
+
+    <div class="privacy-header">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>حماية المعطيات الشخصية</span>
+    </div>
+
+    <div class="privacy-content">
+        <p>
+            أصرّح بموافقتي الصريحة على جمع ومعالجة معطياتي الشخصية
+            طبقًا لأحكام <strong>القانون الجزائري رقم 18-07</strong>
+            المتعلق بحماية الأشخاص الطبيعيين في مجال معالجة المعطيات
+            ذات الطابع الشخصي.
+        </p>
+
+        <div class="form-check mt-3">
+            <input class="form-check-input @error('privacy_policy') is-invalid @enderror"
+                   type="checkbox"
+                   name="privacy_policy"
+                   id="privacy_policy"
+                   value="1"
+                   required>
+
+            <label class="form-check-label fw-bold" for="privacy_policy">
+                أوافق على
+                <a href="#" data-bs-toggle="modal" data-bs-target="#privacyModal"
+                   class="privacy-link">
+                    سياسة حماية المعطيات الشخصية
+                </a>
+            </label>
+
+            @error('privacy_policy')
+                <div class="invalid-feedback d-block mt-1">
+                    يجب الموافقة على سياسة حماية المعطيات الشخصية
+                </div>
+            @enderror
+        </div>
+    </div>
+
+</div>
 
             <div class="col-12">
                 <button type="submit" class="btn btn-success w-100">إنشاء حساب</button>
