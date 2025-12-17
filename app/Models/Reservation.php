@@ -42,7 +42,10 @@ class Reservation extends Model
     public function user() {
         return $this->belongsTo(User::class);
     }
-
+public function person()
+    {
+        return $this->belongsTo(Person::class);
+    }
     // الموسم
     public function season() {
         return $this->belongsTo(Season::class);
@@ -74,13 +77,14 @@ public function schedule()
 public function getDayName($dayNumber)
 {
     return match ($dayNumber) {
-        1 => 'الإثنين',
-        2 => 'الثلاثاء',
-        3 => 'الأربعاء',
-        4 => 'الخميس',
-        5 => 'الجمعة',
-        6 => 'السبت',
-        7 => 'الأحد',
+        0 => 'الأحد',
+        2 => 'الإثنين',
+        3 => 'الثلاثاء',
+        4 => 'الأربعاء',
+        5 => 'الخميس',
+        6 => 'الجمعة',
+        7 => 'السبت',
+      
         default => 'غير معروف',
     };
 }

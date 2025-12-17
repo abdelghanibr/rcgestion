@@ -18,6 +18,8 @@ use App\Http\Controllers\Admin\PricingsPlanController ;
 use App\Http\Controllers\Admin\capacityController ;
 use App\Http\Controllers\Admin\ScheduleController ;
 use App\Http\Controllers\Admin\AgeCategoryController;
+ use App\Http\Controllers\Admin\SeasonController;
+  
 
 
 use App\Http\Controllers\Auth\AdminAuthController;
@@ -36,7 +38,7 @@ use App\Http\Controllers\HomeController;
  
  use App\Http\Controllers\ClubDossierController;
  use App\Http\Controllers\EntrepriseDossierController;
- use App\Http\Controllers\Admin\SeasonController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -239,6 +241,8 @@ Route::middleware(['auth','admin'])->group(function () {
 
 Route::resource('seasons', SeasonController::class);
 
+
+ Route::resource('reservations', \App\Http\Controllers\ReservationController::class);
 
 
 // جدول المواعيد المحجوزة
@@ -465,6 +469,9 @@ Route::delete('/activities/{id}', [ActivityController::class, 'destroy'])->name(
     | RESERVATIONS
     |--------------------------------------------------------------------------
     */
+Route::get('/reservations/{reservation}/print',
+    [ReservationController::class, 'print'])
+    ->name('reservations.print');
 
 
     Route::get('/my-reservations', [ReservationController::class, 'index'])

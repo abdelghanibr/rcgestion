@@ -8,6 +8,99 @@
                  text-align: center; transition:.25s; }
     .dash-card:hover { transform: translateY(-4px); box-shadow:0 4px 14px rgba(0,0,0,0.1);}
     .btn-main { background:#1b5e20!important; color:#fff; border-radius:10px; padding:8px 18px; font-weight:700;}
+
+    /* ===============================
+   STATS GRID
+================================ */
+.stats-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:18px;
+    margin-bottom:30px;
+}
+
+/* ===============================
+   STAT CARD
+================================ */
+.stat-card{
+    background:#ffffff;
+    border-radius:20px;
+    padding:22px;
+    position:relative;
+    box-shadow:0 10px 28px rgba(0,0,0,.08);
+    transition:.25s ease;
+    overflow:hidden;
+}
+
+.stat-card:hover{
+    transform:translateY(-4px);
+    box-shadow:0 18px 42px rgba(0,0,0,.14);
+}
+
+/* ===============================
+   ICON
+================================ */
+.stat-icon{
+    width:54px;
+    height:54px;
+    border-radius:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+    color:#fff;
+    margin-bottom:12px;
+}
+
+/* ===============================
+   TEXT
+================================ */
+.stat-title{
+    font-size:14px;
+    font-weight:800;
+    color:#64748b;
+}
+
+.stat-value{
+    font-size:28px;
+    font-weight:900;
+    color:#0f172a;
+}
+
+/* ===============================
+   COLOR VARIANTS
+================================ */
+.stat-primary .stat-icon{ background:#2563eb; }
+.stat-success .stat-icon{ background:#16a34a; }
+.stat-warning .stat-icon{ background:#f59e0b; }
+.stat-danger  .stat-icon{ background:#dc2626; }
+.stat-purple  .stat-icon{ background:#7c3aed; }
+.stat-cyan    .stat-icon{ background:#0891b2; }
+
+/* subtle bottom accent */
+.stat-card::after{
+    content:'';
+    position:absolute;
+    bottom:0;
+    left:0;
+    width:100%;
+    height:4px;
+    background:linear-gradient(to right,transparent,var(--accent,#2563eb),transparent);
+}
+.stat-primary{ --accent:#2563eb; }
+.stat-success{ --accent:#16a34a; }
+.stat-warning{ --accent:#f59e0b; }
+.stat-danger { --accent:#dc2626; }
+.stat-purple { --accent:#7c3aed; }
+.stat-cyan   { --accent:#0891b2; }
+
+/* ===============================
+   SMALL SCREENS
+================================ */
+@media(max-width:576px){
+    .stat-value{ font-size:24px; }
+}
+
 </style>
 
 <div class="container py-4" style="direction: rtl; text-align:right">
@@ -41,53 +134,17 @@
 
         <div class="col-md-4">
             <div class="dash-card">
-                <h5>🎟️ حجوزاتي</h5>
+                <h5>🎟️ عدد حجوزاتي  {{ $totalReservations }}</h5>
                 <p class="text-muted">عرض وتتبع حجوزاتك</p>
+             
                 <a href="{{ route('reservation.my-reservations') }}" class="btn btn-main btn-sm">عرض الحجوزات</a>
             </div>
         </div>
     </div>
 
 
-    <div class="row g-4">
 
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0">
-            <div class="card-body text-center">
-                <h6 class="text-muted">📋 إجمالي الحجوزات</h6>
-                <h2 class="fw-bold text-primary">{{ $stats['total'] }}</h2>
-            </div>
-        </div>
-    </div>
 
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0">
-            <div class="card-body text-center">
-                <h6 class="text-muted">💳 مدفوعة</h6>
-                <h2 class="fw-bold text-success">{{ $stats['paid'] }}</h2>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0">
-            <div class="card-body text-center">
-                <h6 class="text-muted">⏳ قيد الانتظار</h6>
-                <h2 class="fw-bold text-warning">{{ $stats['pending'] }}</h2>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card shadow-sm border-0">
-            <div class="card-body text-center">
-                <h6 class="text-muted">❌ ملغاة</h6>
-                <h2 class="fw-bold text-danger">{{ $stats['cancelled'] }}</h2>
-            </div>
-        </div>
-    </div>
-
-</div>
 
     <div class="dash-box mt-4">
     <h4 class="mb-3">📌 حالة ملفك</h4>

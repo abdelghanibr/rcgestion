@@ -132,24 +132,27 @@
                         <label class="schedule-option card border-0 shadow-sm p-3 m-0 {{ $isDisabled ? 'schedule-option--disabled' : '' }}">
                             <div class="d-flex flex-column flex-md-row align-items-start gap-3">
                                 <div class="form-check mt-1">
-                                    <input class="form-check-input schedule-radio"
-                                           type="radio"
-                                           name="schedule_id"
-                                           value="{{ $schedule->id }}"
-                                           {{ $isDisabled ? 'disabled' : '' }}
-                                           data-type-prix="{{ $schedule->type_prix }}"
-                                           data-price="{{ $schedule->calculated_price ?? '' }}"
-                                                                                     data-plan-id="{{ $plan?->id ?? '' }}"
-                                                                                     data-plan-name="{{ $plan?->name ?? '' }}"
-                                                                                 data-plan-type="{{ $plan?->pricing_type ?? '' }}"
-                                                                                 data-plan-pricing-type="{{ $plan?->pricing_type ?? '' }}"
-                                         data-plan-duration="{{ $planDuration }}"
-                                                                                 data-plan-duration-unit="{{ $plan?->duration_unit ?? '' }}"
-                                                                                 data-plan-duration-value="{{ $plan?->duration_value ?? '' }}"
-                                                                                 data-plan-sessions="{{ $plan?->sessions_per_week ?? $schedule->sessions_count }}"
-                                         data-sessions="{{ $schedule->sessions_count }}"
-                                         data-pricing-note="{{ $schedule->pricing_note ?? '' }}">
-                                </div>
+                            <input class="form-check-input schedule-radio"
+       type="radio"
+       name="schedule_id"
+       value="{{ $schedule->id }}"
+       {{ $isDisabled ? 'disabled' : '' }}
+
+       data-type-prix="{{ $schedule->type_prix }}"
+       data-price="{{ $schedule->calculated_price ?? '' }}"
+
+       {{-- pricing plan (فقط إذا type_prix = pricing_plan) --}}
+       data-plan-id="{{ $plan?->id ?? '' }}"
+       data-plan-name="{{ $plan?->name ?? '' }}"
+       data-plan-type="{{ $plan?->pricing_type ?? '' }}"
+       data-plan-duration-unit="{{ $plan?->duration_unit ?? '' }}"
+       data-plan-duration-value="{{ $plan?->duration_value ?? '' }}"
+       data-plan-sessions="{{ $plan?->sessions_per_week ?? $schedule->sessions_count }}"
+
+       data-sessions="{{ $schedule->sessions_count }}"
+       data-pricing-note="{{ $schedule->pricing_note ?? '' }}">
+        
+                            </div>
 
                                 <div class="flex-grow-1 w-100">
                                     <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
@@ -189,7 +192,7 @@
                                     <p class="mb-1 text-muted fw-bold">السعر</p>
                                     <span class="price-chip">
                                         @if($hasPrice)
-                                            {{ number_format($schedule->calculated_price, 0, '.', ' ') }} دج
+                                            {{ number_format($schedule->calculated_price) }}  دج . 
                                         @else
                                             —
                                         @endif
@@ -288,50 +291,47 @@
     height: 1.2rem;
 }
 
-.price-chip {
+.price-chip{
     display: inline-block;
-    padding: 0.35rem 1.1rem;
-    border-radius: 999px;
-    background-color: #e7f1ff;
-    color: #0d6efd;
-    font-weight: 600;
-    font-size: 1rem;
-    direction: ltr;
-    unicode-bidi: embed;
+    padding: 6px 14px;
+    border: 2px solid #16a34a;      /* أخضر */
+    color: #16a34a;
+    border-radius: 999px;           /* شكل كبسولة */
+    font-weight: 700;
+    font-size: 0.95rem;
+    background-color: #ecfdf5;      /* أخضر فاتح */
 }
+
 </style>
 @endpush
-
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('reserveForm');
-    if (!form) {
-        return;
-    }
 
-    const scheduleRadios = Array.from(document.querySelectorAll('.schedule-radio')); // جميع خيارات الجداول الزمنية
-    const totalPriceInput = document.getElementById('total_price');// حقل السعر الإجمالي
-    const priceHint = document.getElementById('price_hint');// تلميح السعر
-    const seasonSelect = document.getElementById('season_select');// اختيار الموسم
-    const pricingPlanInput = document.getElementById('pricing_plan_id');// حقل خطة التسعير المختارة
-    const pricingCard = document.getElementById('pricingCard');// بطاقة تفاصيل خطة التسعير
-    const planName = document.getElementById('plan_name');// اسم الخطة
-    const planType = document.getElementById('plan_type');// نوع التسعير
-    const planHours = document.getElementById('plan_hours');// عدد الحصص في الأسبوع
-    const planPrice = document.getElementById('plan_price');// سعر الخطة
-    const planDuration = document.getElementById('plan_duration');// مدة الاشتراك
+    const radios = document.querySelectorAll('.schedule-radio');
+    const totalPrice = document.getElementById('total_price');
+    const priceHint = document.getElementById('price_hint');
 
-    const isFiniteNumber = (value) => Number.isFinite(value) && value >= 0;// التحقق من كون القيمة رقمية موجبة
+    const pricingCard = document.getElementById('pricingCard');
+    const pricingPlanInput = document.getElementById('pricing_plan_id');
 
-    const formatPrice = (value) => {// تنسيق السعر بالعملة المحلية
-        if (!value || isNaN(value)) {
-            return '';
-        }
-        return new Intl.NumberFormat('ar-DZ').format(Number(value)) + ' دج';
-    };
+    const planName = document.getElementById('plan_name');
+    const planType = document.getElementById('plan_type');
+    const planHours = document.getElementById('plan_hours');
+    const planPrice = document.getElementById('plan_price');
+    const planDuration = document.getElementById('plan_duration');
 
-    const resetPlanCard = () => {//
+    const seasonSelect = document.getElementById('season_select');
+
+    const formatPrice = v =>
+        Number.isFinite(v) ? new Intl.NumberFormat('ar-DZ').format(v) + ' دج' : '';
+
+    /* ===============================
+       RESET PRICING PLAN CARD
+    =============================== */
+    const resetPlanCard = () => {
+        pricingPlanInput.value = '';
+        pricingCard.style.display = 'none';
         planName.textContent = '-';
         planType.textContent = '-';
         planHours.textContent = '-';
@@ -339,221 +339,118 @@ document.addEventListener('DOMContentLoaded', function () {
         planDuration.textContent = '-';
     };
 
-    const highlightOption = (radio) => {// تمييز الخيار المختار
-        document.querySelectorAll('.schedule-option').forEach(option => option.classList.remove('selected'));
-        const option = radio.closest('.schedule-option');
-        if (option) {
-            option.classList.add('selected');// إضافة فئة التمييز
+    /* ===============================
+       HIGHLIGHT SELECTED SCHEDULE
+    =============================== */
+    const highlight = (radio) => {
+        document.querySelectorAll('.schedule-option')
+            .forEach(o => o.classList.remove('selected'));
+        radio.closest('.schedule-option')?.classList.add('selected');
     };
 
-    const getSelectedSeason = () => {// جلب الموسم المختار
-        if (!seasonSelect) {
-            return null;
-        }
-        const selectedOption = seasonSelect.options[seasonSelect.selectedIndex];// جلب الخيار المختار
-        if (!selectedOption || !selectedOption.dataset.start || !selectedOption.dataset.end) {// التحقق من وجود بيانات صالحة
-            return null;
-        }
+    /* ===============================
+       GET SEASON (FOR PLANS ONLY)
+    =============================== */
+    const getSeason = () => {
+        if (!seasonSelect || !seasonSelect.value) return null;
+        const opt = seasonSelect.options[seasonSelect.selectedIndex];
         return {
-            id: selectedOption.value,
-            name: selectedOption.text,
-            start: selectedOption.dataset.start,
-            end: selectedOption.dataset.end
+            start: opt.dataset.start,
+            end: opt.dataset.end
         };
     };
 
-    const getSeasonMetrics = (season) => {// حساب مقاييس الموسم
-        if (!season?.start || !season?.end) {
-            return null;
-        }
-
-        const startDate = new Date(season.start);
-        const endDate = new Date(season.end);
-
-        if (Number.isNaN(startDate) || Number.isNaN(endDate) || endDate < startDate) {
-            return null;
-        }
-
-        const diffMs = endDate.getTime() - startDate.getTime();
-        const days = Math.max(1, Math.round(diffMs / 86400000) + 1);
-
-        let months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
-        if (endDate.getDate() >= startDate.getDate() || months === 0) {
-            months += 1;
-        }
-        months = Math.max(1, months);
-        const monthsCharged = Math.min(12, months);
-
-        const weeks = Math.max(1, Math.ceil(days / 7));
-
-        return {
-            ...season,
-            startDate,
-            endDate,
-            days,
-            weeks,
-            months,
-            monthsCharged
-        };
+    const calcSeasonMonths = (start, end) => {
+        const s = new Date(start);
+        const e = new Date(end);
+        let months = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth());
+        if (e.getDate() >= s.getDate()) months++;
+        return Math.max(1, months);
     };
 
-    const calculatePlanPrice = (plan, seasonMetrics) => {
-        if (!plan || !seasonMetrics) {
-            return null;
+    /* ===============================
+       MAIN HANDLER
+    =============================== */
+    const onSelectSchedule = (radio) => {
+        highlight(radio);
+
+        const typePrix = radio.dataset.typePrix; // fix | pricing_plan
+        const basePrice = parseFloat(radio.dataset.price || 0);
+
+        /* ===============================
+           ✅ FIX PRICE (الحل النهائي)
+        =============================== */
+        if (typePrix === 'fix') {
+            resetPlanCard(); // ❌ لا خطة
+            totalPrice.value = formatPrice(basePrice);
+            priceHint.textContent = '💵 سعر ثابت حسب الجدول (غير مرتبط بالموسم)';
+            return;
         }
 
-        const { weeks, months } = seasonMetrics;
-        const durationValue = plan.durationValue > 0 ? plan.durationValue : 1;
-        const basePrice = plan.price;
-        const type = (plan.durationUnit || plan.pricingType || '').toLowerCase();
+        /* ===============================
+           ✅ PRICING PLAN
+        =============================== */
+        const season = getSeason();
+        if (!season) {
+            totalPrice.value = '';
+            priceHint.textContent = '⚠ يرجى اختيار الموسم لحساب سعر الخطة';
+            resetPlanCard();
+            return;
+        }
 
-        switch (type) {
+        const months = calcSeasonMonths(season.start, season.end);
+
+        const durationUnit = radio.dataset.planDurationUnit;
+        const durationValue = parseInt(radio.dataset.planDurationValue || 1);
+        const sessions = parseInt(radio.dataset.planSessions || 1);
+
+        let computed = basePrice;
+
+        switch (durationUnit) {
             case 'month':
             case 'monthly':
-                return Math.ceil(months / durationValue) * basePrice;
+                computed = Math.ceil(months / durationValue) * basePrice;
+                break;
+
             case 'week':
             case 'weekly':
-                return Math.ceil(weeks / durationValue) * basePrice;
+                computed = Math.ceil((months * 4) / durationValue) * basePrice;
+                break;
+
             case 'session':
-                return weeks * (plan.sessionsPerWeek || 1) * basePrice;
-            case 'ticket':
-            default:
-                return basePrice;
-        }
-    };
-
-    const calculateFixedSchedulePrice = (basePrice, seasonMetrics) => {
-        if (!seasonMetrics) {
-            return null;
+                computed = months * sessions * basePrice;
+                break;
         }
 
-        const multiplier = seasonMetrics.monthsCharged ?? seasonMetrics.months ?? 1;
-        return Math.max(1, multiplier) * basePrice;
-    };
-
-    const updatePlanCard = (radio) => {
-        const typePrix = radio.dataset.typePrix;
         pricingPlanInput.value = radio.dataset.planId || '';
-        highlightOption(radio);
+        pricingCard.style.display = 'block';
 
-        if (typePrix === 'pricing_plan') {
-            planName.textContent = radio.dataset.planName || '-';
-            planType.textContent = radio.dataset.planType || '-';
-            planHours.textContent = (radio.dataset.sessions || '0') + ' حصة / الأسبوع';
-            planPrice.textContent = '-';
-            planDuration.textContent = radio.dataset.planDuration || '-';
-            pricingCard.style.display = 'block';
-        } else {
-            resetPlanCard();
-            pricingCard.style.display = 'none';
-        }
+        planName.textContent = radio.dataset.planName || '-';
+        planType.textContent = radio.dataset.planPricingType || '-';
+        planHours.textContent = sessions + ' حصة / الأسبوع';
+        planDuration.textContent = durationValue + ' ' + durationUnit;
+        planPrice.textContent = formatPrice(computed);
+
+        totalPrice.value = formatPrice(computed);
+        priceHint.textContent = '📅 السعر محسوب حسب خطة التسعير والموسم';
     };
 
-    const updateTotals = () => {
-        const selectedRadio = document.querySelector('input.schedule-radio:checked');
-        if (!selectedRadio) {
-            totalPriceInput.value = '';
-            if (priceHint) {
-                priceHint.textContent = '';
-            }
-            return;
-        }
-
-        const typePrix = selectedRadio.dataset.typePrix;
-        const rawPrice = (selectedRadio.dataset.price ?? '').toString();
-        const parsedPrice = parseFloat(rawPrice.replace(',', '.'));
-        const basePrice = Number.isFinite(parsedPrice) ? parsedPrice : 0;
-        const season = getSelectedSeason();
-        const seasonMetrics = season ? getSeasonMetrics(season) : null;
-        let computedPrice = null;
-        let hintMessage = '';
-
-        if (typePrix === 'pricing_plan') {
-            if (!seasonMetrics) {
-                hintMessage = 'اختر الموسم لحساب التكلفة الفعلية لهذه الخطة.';
-            } else {
-                computedPrice = calculatePlanPrice({
-                    price: basePrice,
-                    durationUnit: selectedRadio.dataset.planDurationUnit,
-                    durationValue: parseInt(selectedRadio.dataset.planDurationValue || '1', 10),
-                    pricingType: selectedRadio.dataset.planPricingType || selectedRadio.dataset.planType,
-                    sessionsPerWeek: parseInt(selectedRadio.dataset.planSessions || selectedRadio.dataset.sessions || '1', 10)
-                }, seasonMetrics);
-
-                if (isFiniteNumber(computedPrice)) {
-                    hintMessage = `التكلفة مقدّرة للفترة ${seasonMetrics.start} → ${seasonMetrics.end}.`;
-                }
-            }
-        } else {
-            if (!seasonMetrics) {
-                hintMessage = 'اختر الموسم لحساب التكلفة الإجمالية لهذا الجدول.';
-            } else {
-                computedPrice = calculateFixedSchedulePrice(basePrice, seasonMetrics);
-                const multiplier = seasonMetrics.monthsCharged ?? seasonMetrics.months ?? 1;
-                const monthsLabel = multiplier >= 12
-                    ? 'اشتراك سنوي (12 شهر)'
-                    : `اشتراك ${multiplier} شهر`;
-                hintMessage = `${monthsLabel}: ${multiplier} × السعر الشهري.`;
-            }
-        }
-
-        const appliedPrice = isFiniteNumber(computedPrice) ? computedPrice : null;
-
-        totalPriceInput.value = isFiniteNumber(appliedPrice) ? formatPrice(appliedPrice) : '';
-        if (priceHint) {
-            priceHint.textContent = hintMessage;
-        }
-
-        if (pricingCard && pricingCard.style.display !== 'none' && planPrice) {
-            planPrice.textContent = isFiniteNumber(appliedPrice) ? formatPrice(appliedPrice) : '-';
-        }
-    };
-
-    const updateSelection = (radio) => {
-        updatePlanCard(radio);
-        updateTotals();
-    };
-
-    if (!scheduleRadios.length) {
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            alert('⚠ لا توجد جداول متاحة حالياً. يرجى المحاولة لاحقاً.');
-        });
-        return;
-    }
-
-    scheduleRadios.forEach(radio => {
-        radio.addEventListener('change', () => updateSelection(radio));
+    /* ===============================
+       EVENTS
+    =============================== */
+    radios.forEach(r => {
+        r.addEventListener('change', () => onSelectSchedule(r));
     });
-
-    const firstEnabled = scheduleRadios.find(radio => !radio.disabled);
-    if (firstEnabled) {
-        firstEnabled.checked = true;
-        updateSelection(firstEnabled);
-    } else if (priceHint) {
-        priceHint.textContent = 'لا توجد جداول متاحة حالياً.';
-    }
 
     if (seasonSelect) {
-        seasonSelect.addEventListener('change', updateTotals);
+        seasonSelect.addEventListener('change', () => {
+            const selected = document.querySelector('.schedule-radio:checked');
+            if (selected && selected.dataset.typePrix === 'pricing_plan') {
+                onSelectSchedule(selected);
+            }
+        });
     }
 
-    form.addEventListener('submit', function (e) {
-        const selectedSchedule = document.querySelector('input[name="schedule_id"]:checked');
-        if (!selectedSchedule) {
-            e.preventDefault();
-            alert('⚠ يرجى اختيار جدول قبل تأكيد الحجز.');
-            return;
-        }
-
-        if (selectedSchedule.dataset.typePrix === 'pricing_plan') {
-            const season = getSelectedSeason();
-            if (!season) {
-                e.preventDefault();
-                alert('⚠ يرجى اختيار الموسم لحساب سعر الخطة.');
-            }
-        }
-    });
 });
 </script>
 @endpush

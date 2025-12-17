@@ -380,14 +380,14 @@ body{
             <div class="card-header">
                 <div class="icon-circle">🎟️</div>
                 <div>
-                    <h5>الحجوزات</h5>
+                   <h5>🎟️ عدد حجوزاتي  </h5>
                     <p>حجوزات القاعات والخدمات</p>
                 </div>
             </div>
 
             <div class="card-stats">
                 <div class="stat">
-                    <div class="number">—</div>
+                    <div class="number">{{ $totalReservations }}</div>
                     <div class="label">حجوزات</div>
                 </div>
             </div>

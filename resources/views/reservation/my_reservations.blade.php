@@ -152,7 +152,12 @@
         <button class="btn btn-sm btn-danger">
             🗑️
         </button>
+        
     </form>
+                                     <button class="btn btn-sm btn-outline-dark"
+        onclick="printReservation({{ $r->id }})">
+    🖨️ طباعة
+</button>
                     </td>
                 </tr>
 
@@ -217,6 +222,8 @@
                                     <button class="btn btn-success">
                                         ✅ تأكيد التجديد
                                     </button>
+   
+
                                 </div>
                             </div>
                         </form>
@@ -262,6 +269,13 @@ $(document).ready(function() {
         }
     );
 });
+function printReservation(id) {
+    window.open(
+        "{{ url('/reservations') }}/" + id + "/print",
+        "_blank",
+        "width=900,height=1200"
+    );
+}
 </script>
 
 @endpush

@@ -8,106 +8,185 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Person;
 use App\Models\Dossier;
 use App\Models\club;
+use App\Models\Reservation;
 
 class DashboardController extends Controller
 {
-    public function index()
-    {
-        $user = Auth::user();
+    
 
+public function index()
+{
+    $user = Auth::user();
 
-
-  $ownerType = $user->type; // person / club / entreprise
-
-    // 👤 الحالة 1: شخص
-   
-    // حالة غير متوقعة!
-
+    // ✅ لا نحذف متغير club (كما طلبت)
     $club = \App\Models\Club::where('user_id', auth()->id())->first();
-   
 
+    // ✅ دالة صغيرة لحساب إحصائيات الحجوزات + الدفع (حسب user_id)
+    $buildReservationStats = function ($userId) {
 
+        $base = Reservation::where('user_id', $userId);
 
-        /* ---------------------------------
-        | 📌 Dashboard النادي
-        --------------------------------- */
-        if ($user->type === 'club') {
+        $totalReservations = (clone $base)->count();
 
-            $clubOwner = $user->id;
+        // ✅ payment_status: عدّل القيم حسب enum الحقيقي عندك
+        $paidReservations    = (clone $base)->where('payment_status', 'paid')->count();
+        $pendingPayments     = (clone $base)->where('payment_status', 'pending')->count();
+        $unpaidReservations  = (clone $base)->where('payment_status', 'unpaid')->count();
 
-            $dossier =  Club::where('user_id', $user->id)->first(); //verifir le dossier du club 
+        // ✅ statut: إن أردت إحصاء حالة الحجز
+        $approvedReservations = (clone $base)->where('statut', 'approved')->count();
+        $pendingReservations  = (clone $base)->where('statut', 'pending')->count();
+        $rejectedReservations = (clone $base)->where('statut', 'rejected')->count();
 
-            $playersCount = Person::where('user_id', $clubOwner)
-                                ->where('education', 'لاعب')
-                                ->count();
+        return [
+            'totalReservations'      => $totalReservations,
+            'paidReservations'       => $paidReservations,
+            'pendingPayments'        => $pendingPayments,
+            'unpaidReservations'     => $unpaidReservations,
+            'approvedReservations'   => $approvedReservations,
+            'pendingReservations'    => $pendingReservations,
+            'rejectedReservations'   => $rejectedReservations,
+        ];
+    };
 
-            $coachsCount = Person::where('user_id', $clubOwner)
-                                ->where('education', 'مدرب')
-                                ->count();
+    /* ---------------------------------
+    | 📌 Dashboard النادي
+    --------------------------------- */
+    if ($user->type === 'club') {
 
-            $managersCount = Person::where('user_id', $clubOwner)
-                                ->where('education', 'مسير')
-                                ->count();
+        $clubOwner = $user->id;
 
-            return view('club.dashboard', [
+        // ✅ dossier (كما هو)
+        $dossier = Club::where('user_id', $user->id)->first();
+
+        $playersCount = Person::where('user_id', $clubOwner)->where('education', 'لاعب')->count();
+        $coachsCount  = Person::where('user_id', $clubOwner)->where('education', 'مدرب')->count();
+        $managersCount= Person::where('user_id', $clubOwner)->where('education', 'مسير')->count();
+
+        // ✅ NEW: stats reservations + payment
+        $reservationStats = $buildReservationStats($clubOwner);
+
+        return view('club.dashboard', [
             'user' => $user,
             'playersCount' => $playersCount,
             'coachsCount' => $coachsCount,
-            'managersCount' => $managersCount ,
-             'dossier' =>$dossier ,
-             'club' => $club
+            'managersCount' => $managersCount,
+            'dossier' => $dossier,
+            'club' => $club,
+
+            // ✅ تمرير الإحصائيات الجديدة
+            'totalReservations'    => $reservationStats['totalReservations'],
+            'paidReservations'     => $reservationStats['paidReservations'],
+            'pendingPayments'      => $reservationStats['pendingPayments'],
+            'unpaidReservations'   => $reservationStats['unpaidReservations'],
+            'approvedReservations' => $reservationStats['approvedReservations'],
+            'pendingReservations'  => $reservationStats['pendingReservations'],
+            'rejectedReservations' => $reservationStats['rejectedReservations'],
         ]);
-        }
+    }
 
+    /* ---------------------------------
+    | 📌 Dashboard المؤسسة
+    --------------------------------- */
+    if ($user->type === 'company' || $user->type === 'entreprise') {
 
-        /* ---------------------------------
-        | 📌 Dashboard المؤسسة
-        --------------------------------- */
-      //  dd($user->type ); 
-        if ($user->type === 'company') {
+        $enterpriseOwner = $user->id;
 
-            $enterpriseOwner = $user->id;
-           $dossier =  Club::where('user_id', $user->id)->first();
-            $playersCount = Person::where('user_id', $enterpriseOwner)
-                                ->where('education', 'لاعب')
-                                ->count();
+        // ✅ dossier (كما هو عندك)
+        $dossier = Club::where('user_id', $user->id)->first();
 
-            $coachsCount = Person::where('user_id', $enterpriseOwner)
-                                ->where('education', 'مدرب')
-                                ->count();
+        $playersCount = Person::where('user_id', $enterpriseOwner)->where('education', 'لاعب')->count();
+        $coachsCount  = Person::where('user_id', $enterpriseOwner)->where('education', 'مدرب')->count();
+        $managersCount= Person::where('user_id', $enterpriseOwner)->where('education', 'مسير')->count();
 
-            $managersCount = Person::where('user_id', $enterpriseOwner)
-                                ->where('education', 'مسير')
-                                ->count();
+        // ✅ NEW: stats reservations + payment
+        $reservationStats = $buildReservationStats($enterpriseOwner);
 
-            return view('entreprise.dashboard', compact(
-                'playersCount',
-                'coachsCount',
-                'managersCount','dossier'
-            ));
-        }
+        return view('entreprise.dashboard', [
+            'playersCount' => $playersCount,
+            'coachsCount' => $coachsCount,
+            'managersCount' => $managersCount,
+            'dossier' => $dossier,
+            'club' => $club, // ✅ لا نحذفه
 
-/*pucje dsd
-        /* ---------------------------------
-        | 📌 Dashboard الشخص
-        --------------------------------- */
-     $person = \App\Models\Person::where('user_id', $user->id)->first();
-    
+            // ✅ إحصائيات الحجوزات
+            'totalReservations'    => $reservationStats['totalReservations'],
+            'paidReservations'     => $reservationStats['paidReservations'],
+            'pendingPayments'      => $reservationStats['pendingPayments'],
+            'unpaidReservations'   => $reservationStats['unpaidReservations'],
+            'approvedReservations' => $reservationStats['approvedReservations'],
+            'pendingReservations'  => $reservationStats['pendingReservations'],
+            'rejectedReservations' => $reservationStats['rejectedReservations'],
+        ]);
+    }
+
+    /* ---------------------------------
+    | 📌 Dashboard الشخص
+    --------------------------------- */
+    $person = \App\Models\Person::where('user_id', $user->id)->first();
+
     if ($person) {
         $dossier = \App\Models\Dossier::where('owner_type', 'person')
                                       ->where('person_id', $person->id)
-                                      ->first();}
-
-        $registeredActivities = DB::table('reservations')
-                                ->where('user_id', $user->id)
-                                ->count();
-
-        return view('person.dashboard', compact(
-            'user',
-            'dossier',
-            'registeredActivities'
-        ));
+                                      ->first();
+    } else {
+        $dossier = null; // ✅ حتى لا يقع خطأ
     }
+
+    // ✅ متغيرك القديم
+    $registeredActivities = DB::table('reservations')
+                              ->where('user_id', $user->id)
+                              ->count();
+
+    // ✅ NEW: stats reservations + payment
+    $reservationStats = $buildReservationStats($user->id);
+
+   return view('person.dashboard', [
+        'user'                   => $user,
+        'dossier'                => $dossier,
+        'registeredActivities'   => $registeredActivities,
+
+        // ✅ stats
+        'totalReservations'      => $reservationStats['totalReservations'],
+        'paidReservations'       => $reservationStats['paidReservations'],
+        'pendingPayments'        => $reservationStats['pendingPayments'],
+        'unpaidReservations'     => $reservationStats['unpaidReservations'],
+        'approvedReservations'   => $reservationStats['approvedReservations'],
+        'pendingReservations'    => $reservationStats['pendingReservations'],
+        'rejectedReservations'   => $reservationStats['rejectedReservations'],
+    ]);
+}
+
+protected function buildReservationStats($userId)
+{
+    return [
+        'totalReservations'    => Reservation::where('user_id', $userId)->count(),
+
+        'paidReservations'     => Reservation::where('user_id', $userId)
+                                              ->where('payment_status', 'paid')
+                                              ->count(),
+
+        'pendingPayments'      => Reservation::where('user_id', $userId)
+                                              ->where('payment_status', 'pending')
+                                              ->count(),
+
+        'unpaidReservations'   => Reservation::where('user_id', $userId)
+                                              ->where('payment_status', 'unpaid')
+                                              ->count(),
+
+        'approvedReservations' => Reservation::where('user_id', $userId)
+                                              ->where('statut', 'approved')
+                                              ->count(),
+
+        'pendingReservations'  => Reservation::where('user_id', $userId)
+                                              ->where('statut', 'pending')
+                                              ->count(),
+
+        'rejectedReservations' => Reservation::where('user_id', $userId)
+                                              ->where('statut', 'rejected')
+                                              ->count(),
+    ];
+}
 
     public function dashboard()
 {

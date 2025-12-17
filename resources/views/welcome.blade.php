@@ -77,7 +77,7 @@
                 <h5 class="fw-bold">حساب فردي</h5>
                 <p class="text-muted small mb-3">للأشخاص الراغبين في ممارسة الرياضة وحجز الحصص.</p>
                 <a class="btn btn-primary w-100 mb-2" href="{{ route('person.login') }}">دخول كفرد</a>
-                <a class="btn btn-outline-primary w-100 btn-sm" href="{{ route('person.register') }}">تسجيل فرد جديد</a>
+               
             </div>
         </div>
 
@@ -88,7 +88,7 @@
                 <h5 class="fw-bold">نادي رياضي</h5>
                 <p class="text-muted small mb-3">للأندية المعتمدة لإدارة لاعبيها وبرمجة التدريبات.</p>
                 <a class="btn btn-success w-100 mb-2" href="{{ route('club.login') }}">دخول نادي</a>
-                <a class="btn btn-outline-success w-100 btn-sm" href="{{ route('club.register') }}">تسجيل نادي جديد</a>
+            
             </div>
         </div>
 
@@ -99,7 +99,7 @@
                 <h5 class="fw-bold">مؤسسة / شركة</h5>
                 <p class="text-muted small mb-3">مخصص للمؤسسات الراغبة بحجز المرافق لموظفيها.</p>
                 <a class="btn btn-warning text-white w-100 mb-2" href="{{ route('entreprise.login') }}">دخول مؤسسة</a>
-                <a class="btn btn-outline-warning w-100 btn-sm" href="{{ route('entreprise.register') }}">تسجيل مؤسسة جديدة</a>
+                
             </div>
         </div>
 
@@ -108,17 +108,14 @@
             <div class="card-modern text-center">
                 <i class="fa-solid fa-shield-halved fa-3x text-danger mb-3"></i>
                 <h5 class="fw-bold">تسجيل دخول الإدارة</h5>
-                <p class="text-muted small mb-3">مخصص فقط للمسؤولين.</p>
+                <p class="text-muted small mb-3">مخصص فقط للمسؤلين  عن النظام وعمال الإدارة.</p> 
                 <a class="btn btn-danger w-100" href="{{ route('admin.login') }}">دخول كـ Admin</a>
             </div>
         </div>
 
     </div>
-</div>
 
-
-    <!-- NEWS -->
-    <h2 class="section-title" id="news">آخر المستجدات</h2>
+ <h2 class="section-title" id="news">آخر المستجدات</h2>
     <div class="row g-4">
         <div class="col-md-4">
             <div class="card-modern">
@@ -194,10 +191,57 @@
 
 </div>
 
-<!-- FOOTER -->
-<div class="footer">
-    © 2025 OP O W Mila – ديوان المركب المتعدد الرياضات لولاية ميلة
 </div>
+
+
+    <!-- NEWS -->
+   
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="container">
+
+        <!-- Social -->
+        <div>
+            <h6>تابعنا</h6>
+            <div class="social">
+                <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+                <a href="#"><i class="fa-brands fa-twitter"></i></a>
+                <a href="#"><i class="fa-brands fa-instagram"></i></a>
+            </div>
+        </div>
+
+        <!-- Contact -->
+        <div>
+            <h6>تواصل معنا</h6>
+            <p><i class="fa-solid fa-location-dot"></i> الجزائر – وزارة الشباب</p>
+            <p><i class="fa-solid fa-envelope"></i> contact@mjeunesse.gov.dz</p>
+        </div>
+
+        <!-- Links -->
+        <div>
+            <h6>روابط مهمة</h6>
+            <p><a href="#">الموقع الرسمي للوزارة</a></p>
+            <p><a href="#">منصة مشاركة</a></p>
+            <p><a href="#">بوابة الفضاءات الشبانية</a></p>
+        </div>
+
+        <!-- Logo -->
+        <div>
+            <img src="images/logo.png" alt="Logo" style="max-width:110px">
+            <p class="mt-3">
+                وزارة الشباب تعمل على تمكين الشباب وتعزيز مشاركتهم الفاعلة.
+            </p>
+        </div>
+
+    </div>
+
+    <div class="footer-bottom">
+        © 2025 – جميع الحقوق محفوظة | وزارة الشباب الجزائرية
+    </div>
+</footer>
+
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ asset('js/welcome.js') }}"></script>

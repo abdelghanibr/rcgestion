@@ -167,7 +167,28 @@
         </div>
     </a>
 </div>
-
+<div class="col-md-3">
+    <a href="{{ route('reservations.index') }}" class="text-decoration-none text-dark">
+        <div class="dash-card">
+            <div class="dash-icon">📅</div>
+            <h6 class="fw-bold"> الحجوزات  </h6>
+            <div class="count-box">
+                {{ \App\Models\Reservation::count() }}
+            </div>
+        </div>
+    </a>
+</div>
+<div class="col-md-3">
+    <a href="{{ route('seasons.index') }}" class="text-decoration-none text-dark">
+        <div class="dash-card">
+            <div class="dash-icon">📅</div>
+            <h6 class="fw-bold"> الفصول  </h6>
+            <div class="count-box">
+                {{ \App\Models\season::count() }}
+            </div>
+        </div>
+    </a>
+</div>
 
     </div>
 </div>

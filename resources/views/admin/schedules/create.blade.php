@@ -166,6 +166,10 @@ let calendar;
 function updateHiddenField() {
     document.getElementById("time_slots").value = JSON.stringify(selectedSlots);
 }
+document.getElementById("type_prix").addEventListener("change", function () {
+    document.getElementById("fixed_price_box").style.display =
+        this.value === "fix" ? "block" : "none";
+});
 
 document.addEventListener('DOMContentLoaded', function () {
 

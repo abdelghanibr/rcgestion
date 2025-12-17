@@ -36,28 +36,67 @@ public function index()
 {
     $user = auth()->user();
 
-    $reservations = Reservation::with([
-            'complexActivity.complex',
-            'complexActivity.activity',
-            'season'
-        ])
-        ->where('user_id', $user->id)
-       
-        ->get();
+    $query = Reservation::with([
+        'complexActivity.complex',
+        'complexActivity.activity',
+        'season'
+    ]);
 
+    /*
+    |--------------------------------------------------------------------------
+    | Cas USER / ADMIN
+    |--------------------------------------------------------------------------
+    | - USER  : ses réservations uniquement + ancien view
+    | - ADMIN : toutes les réservations + view admin
+    */
+
+    if ($user->type !='admin') {
+        // 👤 User normal
+        $query->where('user_id', $user->id);
+
+        $reservations = $query->get();
+
+        $activities = Activity::orderBy('title')->get();
+        $seasons    = Season::orderBy('name')->get();
+         
+
+
+        return view('reservation.my_reservations', compact(
+            'reservations',
+            'activities',
+            'seasons' 
+           
+        ));
+    }
+
+    // 🛡️ Admin
+    $reservations = $query->get();
+ $complexes    = complex::orderBy('nom')->get();
     $activities = Activity::orderBy('title')->get();
     $seasons    = Season::orderBy('name')->get();
 
-    return view('reservation.my_reservations', compact(
+    return view('admin.reservations.index', compact(
         'reservations',
         'activities',
-        'seasons'
+        'seasons',
+         'complexes'
     ));
 }
+
      public function create()
     {
         return view('reservations.create');
     }
+public function print(Reservation $reservation)
+{
+    $reservation->load([
+        'user',
+        'complexActivity.activity'
+    ]);
+
+    return view('reservation.print', compact('reservation'));
+}
+
 
     /**
      * تجديد حجز (نفس النشاط و الخطة)
@@ -154,7 +193,7 @@ public function availability($complexActivityId)
     $complexActivity = ComplexActivity::where('activity_id', $activity_id)// جلب المركب والنشاط المحدد
                     ->where('complex_id', $id)
                     ->firstOrFail();
-
+ 
     $person = $user->type === 'person'
         ? Person::where('user_id', $user->id)->with('ageCategory')->first()
         : null;
@@ -186,7 +225,7 @@ public function availability($complexActivityId)
                   ->orWhere('sex', $genderCode);// التحقق من الجنس
         });
     }
-
+    //if ($scheduleQuery) dd($scheduleQuery ) ; 
     $schedules = $scheduleQuery
         ->get()
         ->map(function ($schedule) use ($pricingPlans) {
