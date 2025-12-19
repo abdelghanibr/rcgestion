@@ -141,9 +141,9 @@ class PersonController extends Controller
         $user   = Auth::user();
         $person = Person::findOrFail($id);
 
-        if ($person->user_id !== $user->id) {
-            abort(403);
-        }
+              if ((int)$person->user_id !== (int)auth()->id()) {
+   abort(403, 'غير مصرح لك بتعديل هذا الشخص');
+}
 
         return match ($user->type) {
             'club'    => view('club.persons.edit', compact('person')),

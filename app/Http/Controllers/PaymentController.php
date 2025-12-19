@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Reservation;
 use App\Models\Paiement;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class PaymentController extends Controller
 {
@@ -53,5 +55,22 @@ class PaymentController extends Controller
 
         return redirect()->route('reservation.my_reservations')
                          ->with('success', 'تم الدفع الإلكتروني بنجاح.');
+    }
+    public function pay(Reservation $reservation)
+    {
+        // 🔐 تأكد أن الحجز يخص المستخدم الحالي
+        if ($reservation->user_id !== Auth::id()) {
+            abort(403, 'غير مصرح لك بالدفع لهذا الحجز');
+        }
+
+        // ✅ إذا كان مدفوعًا بالفعل
+        if ($reservation->payment_status === 'paid') {
+            return back()->with('info', 'ℹ️ هذا الحجز مدفوع بالفعل');
+        }
+
+        // 🟡 pending أو 🔴 failed → نسمح بالدفع
+        return view('payments.pay', [
+            'reservation' => $reservation
+        ]);
     }
 }

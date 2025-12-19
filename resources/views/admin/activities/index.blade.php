@@ -18,7 +18,9 @@
                     <th>#</th>
                     <th>الرمز</th>
                     <th>النشاط</th>
+                    <th>نوع النشاط</th>
                     <th>اللون</th>
+                      <th>الحالة</th>
                     <th>إجراءات</th>
                 </tr>
             </thead>
@@ -26,13 +28,30 @@
                 @foreach($activities as $a)
                 <tr>
                     <td>{{ $loop->iteration }}</td>
-                    <td>{!! $a->icon ?? '🏅' !!}</td>
+                    <td class="text-center">
+    @if($a->icon)
+        <img src="{{ asset($a->icon) }}"
+             alt="icon"
+             style="
+                width:40px;
+                height:40px;
+                border-radius:50%;
+                object-fit:cover;
+                border:1px solid #ddd;
+             ">
+    @else
+        <span class="text-muted">—</span>
+    @endif
+</td>
+
                     <td>{{ $a->title }}</td>
+                    <td>{{ $a->activityCategory->name ?? '—' }}</td>
                     <td>
                         <span style="background: {{ $a->color }}; padding:6px 12px; border-radius:6px;">
                             {{ $a->color }}
                         </span>
                     </td>
+                     <td>{{ $a->is_active ? 'نشط' : 'غير نشط' }}</td>
                     <td>
                         <a href="{{ route('admin.activities.edit', $a->id) }}" class="btn btn-sm btn-warning">✏ تعديل</a>
 

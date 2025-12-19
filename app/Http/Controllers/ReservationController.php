@@ -12,7 +12,7 @@ use App\Models\Season;
 
 use App\Models\Person;
 use App\Models\Dossier;
-use App\Models\club;
+use App\Models\Club;
 
 use App\Models\ComplexActivity;
 use App\Models\Schedule;
@@ -42,13 +42,8 @@ public function index()
         'season'
     ]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Cas USER / ADMIN
-    |--------------------------------------------------------------------------
-    | - USER  : ses réservations uniquement + ancien view
-    | - ADMIN : toutes les réservations + view admin
-    */
+
+    
 
     if ($user->type !='admin') {
         // 👤 User normal
@@ -348,7 +343,7 @@ public function store(Request $request)
     $complexActivity = ComplexActivity::findOrFail($request->complex_activity_id);
     $schedule = Schedule::findOrFail($request->schedule_id);
 
-    if ($schedule->complex_activity_id !== $complexActivity->id) {
+    if ( (int)$schedule->complex_activity_id !== (int)$complexActivity->id) {
         return back()->with('error', '⚠ الجدول المختار لا ينتمي إلى هذا النشاط.');
     }
 
@@ -418,15 +413,31 @@ public function store(Request $request)
     ]);
 
     $redirect = match ($user->type) {
-        'admin' => redirect()->route('admin.dashboard'),
-        'club'  => redirect()->route('club.dashboard'),
-        'company' => redirect()->route('entreprise.dashboard'),
-        default => redirect()->route('person.dashboard'),
+        'admin' => redirect()->route('reservation.my-reservations') ,
+        'club'  => redirect()->route('reservation.my-reservations') ,
+        'company' => redirect()->route('reservation.my-reservations') ,
+        default => redirect()->route('reservation.my-reservations')    //route('person.dashboard'),//route('reservation.my-reservations') 
     };
 
     return $redirect->with('success', '✔ تم تسجيل الحجز بنجاح وسيتم مراجعته من الإدارة.');
 }
+ public function pay(Reservation $reservation)
+    {
+        // 🔐 تأكد أن الحجز يخص المستخدم الحالي
+        if ($reservation->user_id !== Auth::id()) {
+            abort(403, 'غير مصرح لك بالدفع لهذا الحجز');
+        }
 
+        // ✅ إذا كان مدفوعًا بالفعل
+        if ($reservation->payment_status === 'paid') {
+            return back()->with('info', 'ℹ️ هذا الحجز مدفوع بالفعل');
+        }
+
+        // 🟡 pending أو 🔴 failed → نسمح بالدفع
+        return view('payments.pay', [
+            'reservation' => $reservation
+        ]);
+    }
 
     // 8) حجوزات المستخدم
     public function myReservations()

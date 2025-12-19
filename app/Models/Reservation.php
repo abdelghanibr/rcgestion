@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
+
 
 class Reservation extends Model
 {
@@ -36,6 +38,49 @@ class Reservation extends Model
         'end_date' => 'date',
     ];
 
+public function getAlertExpiredAttribute()
+{
+    return $this->payment_status === 'paid'
+        && $this->date_fin
+        && now()->gt(Carbon::parse($this->date_fin)->addDays(5));
+}
+public function getEtatLabelAttribute()
+{
+    if ($this->payment_status === 'paid' && $this->end_date) {
+        $days = now()->diffInDays(Carbon::parse($this->end_date), false);
+
+        if ($days <= 5 && $days >= 0) {
+            return [
+                'label' => "⏳ ينتهي خلال $days أيام",
+                'class' => 'bg-warning text-dark'
+            ];
+        }
+
+        return [
+            'label' => 'مدفوع',
+            'class' => 'bg-success'
+        ];
+    }
+
+    if ($this->payment_status === 'pending') {
+        return [
+            'label' => 'قيد الانتظار',
+            'class' => 'bg-secondary'
+        ];
+    }
+
+    if ($this->payment_status === 'failed') {
+        return [
+            'label' => 'فشل الدفع',
+            'class' => 'bg-danger'
+        ];
+    }
+
+    return [
+        'label' => 'غير معروف',
+        'class' => 'bg-light text-dark'
+    ];
+}
     /* 🔗 العلاقـات */
 
     // صاحب الحجز (قد يكون شخص / نادي / مؤسسة)

@@ -12,87 +12,138 @@
                 font-weight:600;">
         <div class="d-flex justify-content-between align-items-center">
             <span>إدارة جميع النشاطات الخاصة بك هنا</span>
-            <span style="font-size:20px;"><i class="fa-solid fa-wave-pulse"></i> نشاطاتي</span>
+            <span style="font-size:20px;">
+                <i class="fa-solid fa-wave-pulse"></i> نشاطاتي
+            </span>
         </div>
-    </div>
+    
 
+    {{-- ===================== --}}
+    {{--  فلترة حسب الفئة فقط --}}
+    {{-- ===================== --}}
+     
+<form method="GET"
+      action="{{ route('activities.index') }}"
+      class="d-flex gap-2">
 
-    <!-- الفلاتر + البحث -->
-    <div class="d-flex justify-content-between mb-3">
+    {{-- البحث --}}
+    <input name="search"
+           type="text"
+           class="form-control"
+           value="{{ request('search') }}"
+           placeholder="ابحث عن نشاط..."
+           style="width: 220px; border-radius:8px;"
+           oninput="this.form.submit()">
 
-        <!-- أزرار الفلترة -->
-        <div class="d-flex gap-4" style="font-size:16px; font-weight:600;">
-            <a href="{{ route('activities.index') }}" class="text-success text-decoration-none">
-                <i class="fa-solid fa-list"></i> جميع النشاطات
-            </a>
+    {{-- الفئة --}}
+    <select name="category_id"
+            class="form-select"
+            style="width: 220px; border-radius:8px;"
+            onchange="this.form.submit()">
+        <option value="">كل الفئات</option>
+        @foreach($categories as $cat)
+            <option value="{{ $cat->id }}"
+                {{ request('category_id') == $cat->id ? 'selected' : '' }}>
+                {{ $cat->name }}
+            </option>
+        @endforeach
+    </select>
 
-            <a href="#" class="text-warning text-decoration-none">
-                <i class="fa-regular fa-clock"></i> قيد التنفيذ
-            </a>
+</form>
+ 
+</div>
 
-            <a href="#" class="text-success text-decoration-none">
-                <i class="fa-solid fa-check-circle"></i> مكتملة
-            </a>
-
-            <a href="#" class="text-primary text-decoration-none">
-                <i class="fa-solid fa-user"></i> نشاطاتي
-            </a>
-        </div>
-
-        <!-- البحث -->
-        <form method="GET" action="{{ route('activities.index') }}" class="d-flex">
-            <input name="search"
-                   type="text"
-                   class="form-control"
-                   placeholder="ابحث عن نشاط..."
-                   style="width: 200px; border-radius:8px;">
-            <button class="btn btn-primary ms-2">
-                <i class="fa-solid fa-search"></i>
-            </button>
-        </form>
-    </div>
 
 
     <!-- عرض النشاطات -->
-    <div class="row g-4">
+    <div class="row g-4" id="activitiesContainer">
+
         @forelse ($activities as $a)
-        <div class="col-md-4">
+        <div class="col-md-4 activity-card"
+             data-category="{{ strtolower($a->category->name ?? '') }}">
 
             <div class="card shadow-sm" style="border: 2px solid {{ $a->color }};">
 
-              @if($a->icon)
-<div style="height:180px; background:#f0f0f0; overflow:hidden;">
-    <img src="{{ $a->icon ?? asset('images/default-activity.png') }}"
-         alt="Activity Icon"
-         style="width:100%; height:100%; object-fit:cover;"
-         onerror="this.src='{{ asset('images/default-activity.png') }}'">
-</div>
-@else
-    <span class="text-muted">🔄 لا توجد صورة</span>
-@endif
+                {{-- الصورة --}}
+                @if($a->icon)
+                    <div style="height:180px; background:#f0f0f0; overflow:hidden;">
+                        <img src="{{ $a->icon }}"
+                             alt="Activity Icon"
+                             style="width:100%; height:100%; object-fit:cover;"
+                             onerror="this.src='{{ asset('images/default-activity.png') }}'">
+                    </div>
+                @else
+                    <div style="height:180px;
+                                background:#f0f0f0;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                                color:#888;">
+                        <i class="fa-regular fa-image fa-2x"></i>
+                        <span class="ms-2">لا توجد صورة</span>
+                    </div>
+                @endif
 
                 <div class="card-body">
-                    <h5 class="fw-bold" style="color: {{ $a->color }};">{{ $a->title }}</h5>
+                    <h5 class="fw-bold" style="color: {{ $a->color }};">
+                        {{ $a->title }}
+                    </h5>
 
-                    <p class="text-muted">{{ Str::limit($a->description, 90) }}</p>
-                    <p class="text-muted" >الرقم/  {{ $a->id }} </p>
-                  <a href="{{ route('activities.complexes', $a->id) }}" class="btn btn-success btn-sm">
-    <i class="fa-solid fa-pen-to-square ms-1"></i>
-    تسجيل في النشاط
-</a>
+                    <p class="text-muted">
+                        {{ Str::limit($a->description, 90) }}
+                    </p>
+
+                    <p class="text-muted">
+                        الرقم / {{ $a->id }}
+                    </p>
+
+                    <span class="badge bg-primary mb-2">
+                        {{ $a->activityCategory->name ?? 'بدون فئة' }}
+                    </span>
+
+                    <br>
+
+                    <a href="{{ route('activities.complexes', $a->id) }}"
+                       class="btn btn-success btn-sm mt-2">
+                        <i class="fa-solid fa-pen-to-square ms-1"></i>
+                        تسجيل في النشاط
+                    </a>
                 </div>
             </div>
-
         </div>
+
         @empty
-
-        <div class="alert alert-info text-center">
-            لا توجد نشاطات متاحة حالياً.
-        </div>
-
+            <div class="alert alert-info text-center">
+                لا توجد نشاطات متاحة حالياً.
+            </div>
         @endforelse
+
     </div>
 
 </div>
+
+{{-- ===================== --}}
+{{--  JS فلترة حسب الفئة --}}
+{{-- ===================== --}}
+
+
+
+<script>
+document.getElementById('categoryFilter').addEventListener('change', function () {
+
+    let selected = this.value;
+    let cards = document.querySelectorAll('.activity-card');
+
+    cards.forEach(card => {
+        let category = card.dataset.category;
+
+        if (selected === '' || category === selected) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
+</script>
 
 @endsection

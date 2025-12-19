@@ -6,26 +6,55 @@ use App\Models\Activity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Models\ActivityCategory;
 
 class ActivityController extends Controller
 {
     /**
      * عرض جميع الأنشطة
      */
-    public function index()
-    {
-        $activities = Activity::all();
-        return view('activities.index', compact('activities'));
+ /*public function index()
+{
+    $activities = Activity::with('activityCategory')->get();
+    return view('activities.index', compact('activities'));
+}*/
+public function index(Request $request)
+{
+    $query = Activity::query();
+
+    // 🔍 البحث
+    if ($request->filled('search')) {
+        $query->where('title', 'like', '%' . $request->search . '%');
     }
 
+    // 🧩 الفلترة حسب الفئة
+    if ($request->filled('category_id')) {
+        $query->where('activity_category_id', (int)$request->category_id);
+    }
+
+    $activities = $query->latest()->get();
+
+    // 🧩 جميع الفئات
+    $categories = ActivityCategory::orderBy('name')->get();
+
+    return view('activities.index', compact('activities', 'categories'));
+}
     /**
      * صفحة إضافة نشاط
      */
-  public function create()
+
+public function create()
 {
+   // $ageCategories      = AgeCategory::orderBy('name')->get();
     $activities = Activity::latest()->get();
-    return view('activities.create', compact('activities'));
+    $activityCategories = ActivityCategory::orderBy('name')->get();
+
+    return view('admin.activities.create', compact(
+      
+        'activityCategories'
+    ));
 }
+
 
     /**
      * حفظ النشاط الجديد
@@ -37,7 +66,9 @@ class ActivityController extends Controller
             'icon'  => 'required|image|mimes:jpg,jpeg,png|max:4096',
             'description' => 'nullable|string',
             'category' => 'nullable|string',
-            'color' => 'nullable|string'
+            'color' => 'nullable|string',
+            'activity_category_id' => 'nullable|exists:activity_categories,id'
+   
         ]);
 
         // المسارات من .env
@@ -60,6 +91,7 @@ class ActivityController extends Controller
             'description' => $request->description,
             'color' => $request->color,
             'icon' => $iconUrl,
+            'activity_category_id' => $request->activity_category_id
         ]);
 
         return redirect()

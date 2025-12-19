@@ -136,7 +136,14 @@
             <div class="dash-card">
                 <h5>🎟️ عدد حجوزاتي  {{ $totalReservations }}</h5>
                 <p class="text-muted">عرض وتتبع حجوزاتك</p>
-             
+             @if($reservationExpiring)
+    <div class="alert alert-warning text-center">
+        ⏳ سينتهي أحد حجوزاتك خلال
+        <strong>{{ $reservationExpiring->days_remaining }}</strong>
+        أيام
+    </div>
+@endif
+
                 <a href="{{ route('reservation.my-reservations') }}" class="btn btn-main btn-sm">عرض الحجوزات</a>
             </div>
         </div>

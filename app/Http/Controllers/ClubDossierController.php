@@ -42,13 +42,56 @@ class ClubDossierController extends Controller
             'minutes_meeting',
             'exploitation_request'
         ];
+if (app()->environment('local')) {
+    $storagePath = storage_path('app/public');
+    $storageUrl  = '/storage';
+} else {
+    $storagePath = rtrim(env('PUBLIC_STORAGE_PATH'), '/');
+    $storageUrl  = rtrim(env('PUBLIC_STORAGE_URL'), '/');
+}
 
-        foreach ($files as $file) {
-            if ($request->hasFile($file)) {
-                $path = $request->file($file)->store('clubs/dossiers', 'public');
-                $attachments[$file] = 'storage/' . $path;
+// المرفقات القديمة
+$oldAttachments = json_decode($club->attachments ?? '{}', true);
+$attachments = $oldAttachments ?? [];
+
+foreach ($files as $file) {
+
+    if ($request->hasFile($file)) {
+
+        $uploadedFile = $request->file($file);
+
+        // تنظيف الاسم
+        $originalName = pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME);
+        $extension    = $uploadedFile->getClientOriginalExtension();
+        $cleanName    = preg_replace('/[^A-Za-z0-9_\-]/', '_', $originalName);
+
+        $fileName = uniqid() . '_' . $cleanName . '.' . $extension;
+
+        // إنشاء المجلد إن لم يوجد
+        if (!is_dir($storagePath . '/clubs/dossiers')) {
+            mkdir($storagePath . '/clubs/dossiers', 0755, true);
+        }
+
+        // حذف القديم (اختياري)
+        if (!empty($attachments[$file])) {
+            $oldFilePath = str_replace($storageUrl, $storagePath, $attachments[$file]);
+            if (file_exists($oldFilePath)) {
+                unlink($oldFilePath);
             }
         }
+
+        // حفظ الجديد
+        $uploadedFile->move(
+            $storagePath . '/clubs/dossiers',
+            $fileName
+        );
+
+        $attachments[$file] = $storageUrl . '/clubs/dossiers/' . $fileName;
+    }
+}
+
+// تحديث
+
 
         $club->update([
             'attachments' => json_encode($attachments),

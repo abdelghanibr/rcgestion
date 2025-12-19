@@ -131,20 +131,41 @@
                     </td>
 
                     {{-- الدفع --}}
-                    <td>
-                        <span class="badge {{ $r->payment_status == 'paid' ? 'bg-success' : 'bg-secondary' }}">
-                            {{ $r->payment_status }}
-                        </span>
+                    
+<td class="text-center">
+    <span class="badge {{ $r->etat_label['class'] }}">
+        {{ $r->etat_label['label'] }}
+    </span>
+</td>
+
+
+
                     </td>
 
                     {{-- التحكم --}}
-                    <td>
-                        <button class="btn btn-sm btn-primary"
-                                data-bs-toggle="modal"
-                                data-bs-target="#renewModal{{ $r->id }}">
-                            🔁 تجديد
-                        </button>
-                        <form action="{{ route('reservations.destroy', $r->id) }}"
+                    
+                    <td class="text-center">
+
+    @if($r->payment_status === 'paid')
+        {{-- 🔁 تجديد --}}
+        <button class="btn btn-sm btn-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#renewModal{{ $r->id }}">
+            🔁 تجديد
+        </button>
+
+    @elseif($r->payment_status === 'pending' || $r->payment_status === 'failed')
+        {{-- 💳 دفع --}}
+      <a href="{{ route('payments.pay', $r->id) }}"
+   class="btn btn-sm btn-success">
+    💳 دفع
+</a>
+
+    @endif
+
+
+   
+                    <form action="{{ route('reservations.destroy', $r->id) }}"
           method="POST"
           onsubmit="return confirm('هل أنت متأكد من حذف هذا الحجز؟');">
         @csrf

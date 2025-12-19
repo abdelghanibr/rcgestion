@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\capacityController ;
 use App\Http\Controllers\Admin\ScheduleController ;
 use App\Http\Controllers\Admin\AgeCategoryController;
  use App\Http\Controllers\Admin\SeasonController;
+ use App\Http\Controllers\Admin\PersonsController ;
   
 
 
@@ -38,6 +39,7 @@ use App\Http\Controllers\HomeController;
  
  use App\Http\Controllers\ClubDossierController;
  use App\Http\Controllers\EntrepriseDossierController;
+ use App\Http\Controllers\Admin\ActivityCategoryController;
 
 
 /*
@@ -236,14 +238,13 @@ Route::middleware(['auth','entreprise'])->group(function () {
 
 Route::middleware(['auth','admin'])->group(function () {
 
-
-
+Route::resource('persons', PersonsController::class);
+Route::resource('activity-categories',ActivityCategoryController::class );
 
 Route::resource('seasons', SeasonController::class);
 
 
  Route::resource('reservations', \App\Http\Controllers\ReservationController::class);
-
 
 // جدول المواعيد المحجوزة
 Route::get('/admin/schedules/occupied', 
@@ -519,6 +520,12 @@ Route::get('/my-activities', function () {
         ->name('reservation.store');
 
     // Paiements
+
+   
+    Route::get('/payments/{reservation}/pay', [PaymentController::class, 'pay'])
+         ->name('payments.pay');
+
+
     Route::get('/reservations/payment/{id}', [PaymentController::class, 'paymentPage'])
         ->name('reservation.payment');
 

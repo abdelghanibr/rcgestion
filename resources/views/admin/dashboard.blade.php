@@ -92,7 +92,7 @@
 
         <!-- 👥 الأفراد -->
         <div class="col-md-3">
-            <a href="#" class="text-decoration-none text-dark">
+            <a href="{{ route('persons.index') }}" class="text-decoration-none text-dark">
                 <div class="dash-card">
                     <div class="dash-icon">👥</div>
                     <h6 class="fw-bold">الأفراد</h6>
@@ -104,9 +104,9 @@
          <div class="col-md-3">
             <a href="{{ route('age-categories.index') }}" class="text-decoration-none text-dark">
                 <div class="dash-card">
-                    <div class="dash-icon">👥</div>
+                    <div class="dash-icon">🧒</div>
                     <h6 class="fw-bold">الفيئات العمرية</h6>
-               
+                 <div class="count-box">عدد الفئات: {{ \App\Models\AgeCategory::count() }}</div>
                 </div>
             </a>
         </div>
@@ -121,7 +121,17 @@
                 </div>
             </a>
         </div>
-
+<div class="col-md-3">
+    <a href="{{ route('activity-categories.index') }}" class="text-decoration-none text-dark">
+        <div class="dash-card">
+            <div class="dash-icon">🧩</div>
+            <h6 class="fw-bold"> انواع النشاطات  </h6>
+            <div class="count-box">
+                {{ \App\Models\ActivityCategory::count() }}
+            </div>
+        </div>
+    </a>
+</div>
         <!-- 🏟 المركبات -->
         <div class="col-md-3">
             <a href="{{ route('admin.complexes.index') }}" class="text-decoration-none text-dark">
@@ -150,7 +160,7 @@
             <div class="dash-icon">🏫</div>
             <h6 class="fw-bold">إسناد الأنشطة للمؤسسات</h6>
             <div class="count-box">
-                {{ \App\Models\complexactivity::count() }}
+                {{ \App\Models\ComplexActivity::count() }}
             </div>
         </div>
     </a>
@@ -159,7 +169,7 @@
 <div class="col-md-3">
     <a href="{{ route('admin.schedules.index') }}" class="text-decoration-none text-dark">
         <div class="dash-card">
-            <div class="dash-icon">📅</div>
+            <div class="dash-icon">⏰</div>
             <h6 class="fw-bold">الجداول الزمنية</h6>
             <div class="count-box">
                 {{ \App\Models\Schedule::count() }}
@@ -170,7 +180,7 @@
 <div class="col-md-3">
     <a href="{{ route('reservations.index') }}" class="text-decoration-none text-dark">
         <div class="dash-card">
-            <div class="dash-icon">📅</div>
+            <div class="dash-icon">📝</div>
             <h6 class="fw-bold"> الحجوزات  </h6>
             <div class="count-box">
                 {{ \App\Models\Reservation::count() }}
@@ -181,14 +191,18 @@
 <div class="col-md-3">
     <a href="{{ route('seasons.index') }}" class="text-decoration-none text-dark">
         <div class="dash-card">
-            <div class="dash-icon">📅</div>
+          <div class="dash-icon">🗓️</div>
             <h6 class="fw-bold"> الفصول  </h6>
             <div class="count-box">
-                {{ \App\Models\season::count() }}
+                {{ \App\Models\Season::count() }}
             </div>
         </div>
     </a>
 </div>
+
+
+
+
 
     </div>
 </div>
