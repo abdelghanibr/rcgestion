@@ -196,53 +196,88 @@ public function availability($complexActivityId)
     $ageCategoryId = $person?->age_category_id;// جلب فئة العمر
     $genderCode = $this->normalizeGender($person?->gender);// تطبيع قيمة الجنس
 
-    $pricingPlans = $this->eligiblePricingPlans(
-        $complexActivity->activity_id,
-        $user,
-        $ageCategoryId,
-        $genderCode
-    );// جلب خطط التسعير المؤهلة
+    $seasons = Season::all();
+    $selectedSeasonId = request()->input('season_id');
+    $schedules = collect();
+    $pricingPlans = collect();
 
-    $scheduleQuery = Schedule::with('ageCategory')
-        ->where('complex_activity_id', $complexActivity->id);// جلب الجداول الزمنية للمركب والنشاط المحدد
+    // تحميل الجداول فقط إذا تم اختيار موسم
+    if ($selectedSeasonId) {
+        $pricingPlans = $this->eligiblePricingPlans(
+            $complexActivity->activity_id,
+            $user,
+            $ageCategoryId,
+            $genderCode
+        );// جلب خطط التسعير المؤهلة
 
-    if ($ageCategoryId) {// التحقق من فئة العمر
-        $scheduleQuery->where(function ($query) use ($ageCategoryId) {// شرط للتحقق من فئة العمر
-            $query->whereNull('age_category_id')// إذا لم تكن هناك فئة عمر محددة
-                  ->orWhere('age_category_id', $ageCategoryId);// التحقق من فئة العمر
+        $scheduleQuery = Schedule::with('ageCategory')
+            ->where('complex_activity_id', $complexActivity->id);// جلب الجداول الزمنية للمركب والنشاط المحدد
+
+        // تصفية الجداول حسب نوع المستخدم
+        if ($user->type === 'person') {
+            // للأشخاص: عرض الجداول العامة فقط (غير مخصصة لمستخدم معين)
+            $scheduleQuery->whereNull('user_id');
+            
+        // عرض الجداول التي تطابق فئة العمر أو الجداول المتاحة لجميع الأعمار
+        if ($ageCategoryId) {// التحقق من فئة العمر
+            $scheduleQuery->where(function ($query) use ($ageCategoryId) {// شرط للتحقق من فئة العمر
+                $query->whereNull('age_category_id')// الجداول المتاحة لجميع الأعمار
+                      ->orWhere('age_category_id', $ageCategoryId);// أو الجداول الخاصة بفئة عمر المستخدم
+            });
+        } else {
+            // إذا لم تكن هناك فئة عمر للمستخدم، عرض الجداول المتاحة لجميع الأعمار فقط
+            $scheduleQuery->whereNull('age_category_id');
+        }
+
+        // عرض الجداول التي تطابق الجنس أو الجداول المتاحة لجميع الجنسين
+        if ($genderCode) {// التحقق من الجنس
+            $scheduleQuery->where(function ($query) use ($genderCode) {// شرط للتحقق من الجنس
+                $query->whereNull('sex')// الجداول المتاحة لجميع الجنسين
+                      ->orWhere('sex', 'X')// الجداول المختلطة
+                      ->orWhere('sex', $genderCode);// أو الجداول الخاصة بجنس المستخدم
+            });
+        } else {
+            // إذا لم يكن هناك جنس محدد، عرض الجداول المتاحة لجميع الجنسين فقط
+            $scheduleQuery->where(function ($query) {
+                $query->whereNull('sex')->orWhere('sex', 'X');
+            });
+        }
+    } elseif (in_array($user->type, ['club', 'company'])) {
+        // للأندية والشركات: عرض الجداول المخصصة لهم أو الجداول ذات السعر الثابت
+        $scheduleQuery->where(function ($query) use ($user) {
+            $query->where('user_id', $user->id) // الجداول المخصصة للمستخدم
+                  ->orWhere(function ($q) {
+                      $q->where('type_prix', 'fix') // أو الجداول بسعر ثابت
+                        ->whereNull('user_id') // غير مخصصة لمستخدم آخر
+                        ->whereNull('age_category_id') // متاحة لجميع الأعمار
+                        ->where(function ($sq) {
+                            $sq->whereNull('sex')->orWhere('sex', 'X'); // متاحة لجميع الجنسين
+                        });
+                  });
         });
     }
+        
+        $schedules = $scheduleQuery
+            ->get()
+            ->map(function ($schedule) use ($pricingPlans) {
+                return $this->decorateScheduleForDisplay($schedule, $pricingPlans);
+            });// تزيين الجداول الزمنية للعرض
 
-    if ($genderCode) {// التحقق من الجنس
-        $scheduleQuery->where(function ($query) use ($genderCode) {// شرط للتحقق من الجنس
-            $query->whereNull('sex')// إذا لم يكن هناك جنس محدد
-                  ->orWhere('sex', 'X')// إذا كان الجنس غير محدد (X)
-                  ->orWhere('sex', $genderCode);// التحقق من الجنس
-        });
+
+        if ($schedules->isNotEmpty()) {// التحقق من وجود جداول زمنية
+            $reservedCounts = Reservation::whereIn('schedule_id', $schedules->pluck('id'))// جلب الحجوزات للجداول الزمنية المحددة
+                ->selectRaw('schedule_id, SUM(qty_places) as reserved')// جلب عدد الأماكن المحجوزة
+                ->groupBy('schedule_id')// تجميع النتائج حسب معرف الجدول الزمني
+                ->pluck('reserved', 'schedule_id');// جلب عدد الأماكن المحجوزة لكل جدول زمني
+
+            $schedules = $schedules->map(function ($schedule) use ($reservedCounts) {// تحديث الجداول الزمنية بعدد الأماكن المحجوزة والمتاحة
+                $reserved = (int) ($reservedCounts[$schedule->id] ?? 0);// جلب عدد الأماكن المحجوزة للجدول الزمني الحالي
+                $schedule->reserved_places = $reserved;// تعيين عدد الأماكن المحجوزة
+                $schedule->available_places = $schedule->nbr ? max(0, $schedule->nbr - $reserved) : null;
+                return $schedule;// تعيين عدد الأماكن المتاحة
+            });
+        }
     }
-    //if ($scheduleQuery) dd($scheduleQuery ) ; 
-    $schedules = $scheduleQuery
-        ->get()
-        ->map(function ($schedule) use ($pricingPlans) {
-            return $this->decorateScheduleForDisplay($schedule, $pricingPlans);
-        });// تزيين الجداول الزمنية للعرض
-
-
-    if ($schedules->isNotEmpty()) {// التحقق من وجود جداول زمنية
-        $reservedCounts = Reservation::whereIn('schedule_id', $schedules->pluck('id'))// جلب الحجوزات للجداول الزمنية المحددة
-            ->selectRaw('schedule_id, SUM(qty_places) as reserved')// جلب عدد الأماكن المحجوزة
-            ->groupBy('schedule_id')// تجميع النتائج حسب معرف الجدول الزمني
-            ->pluck('reserved', 'schedule_id');// جلب عدد الأماكن المحجوزة لكل جدول زمني
-
-        $schedules = $schedules->map(function ($schedule) use ($reservedCounts) {// تحديث الجداول الزمنية بعدد الأماكن المحجوزة والمتاحة
-            $reserved = (int) ($reservedCounts[$schedule->id] ?? 0);// جلب عدد الأماكن المحجوزة للجدول الزمني الحالي
-            $schedule->reserved_places = $reserved;// تعيين عدد الأماكن المحجوزة
-            $schedule->available_places = $schedule->nbr ? max(0, $schedule->nbr - $reserved) : null;
-            return $schedule;// تعيين عدد الأماكن المتاحة
-        });
-    }
-
-    $seasons   = Season::all();
     $dossier = Club::where('user_id', $user->id)->first();
     // تحقق من الدوسيي
     if ($user->type === 'company' || $user->type === 'club') {
@@ -282,7 +317,8 @@ public function availability($complexActivityId)
         'complexActivity',
         'seasons',
         'activity',
-        'schedules'
+        'schedules',
+        'selectedSeasonId'
     ));
 
 }
@@ -362,6 +398,12 @@ public function store(Request $request)
 
     $slots = $this->decodeScheduleSlots($schedule);
     $sessionsPerWeek = count($slots);
+
+    // التحقق من عدم وجود تعارض في المواعيد مع حجوزات المستخدم الحالية
+    $conflict = $this->checkScheduleConflict($user->id, $schedule, $season);
+    if ($conflict) {
+        return back()->with('error', '⚠ يوجد تعارض في المواعيد مع حجز آخر لديك: ' . $conflict);
+    }
 
     if ($schedule->nbr) {
         $reservedPlaces = Reservation::where('schedule_id', $schedule->id)->sum('qty_places');
@@ -603,7 +645,11 @@ public function store(Request $request)
         $basePrice = (float) $schedule->price;// السعر الأساسي للجدول
         $start = Carbon::parse($season->date_debut);// تاريخ بداية الموسم
         $end = Carbon::parse($season->date_fin);// تاريخ نهاية الموسم
+        $today = Carbon::today();// تاريخ اليوم
 
+        // إذا بدأ الاشتراك في منتصف الشهر، احسب السعر التناسبي
+        $proratedFirstMonth = $this->calculateProratedFirstMonth($today, $basePrice);
+        
         $monthsBetween = $start->diffInMonths($end);// حساب عدد الشهور بين البداية والنهاية
 
         if ($end->day >= $start->day || $monthsBetween === 0) {// إذا كان يوم النهاية أكبر أو يساوي يوم البداية
@@ -613,6 +659,11 @@ public function store(Request $request)
         $months = max(1, $monthsBetween);// التأكد من أن عدد الشهور لا يقل عن 1
         $monthsCharged = min(12, $months);// تحديد عدد الشهور التي سيتم احتسابها (بحد أقصى 12)
 
+        // إذا كان هناك سعر تناسبي للشهر الأول، اطرح شهر كامل واضف السعر التناسبي
+        if ($proratedFirstMonth < $basePrice && $monthsCharged > 0) {
+            return ($basePrice * ($monthsCharged - 1)) + $proratedFirstMonth;
+        }
+
         return $basePrice * $monthsCharged;// حساب السعر النهائي بضرب السعر الأساسي في عدد الشهور المحتسبة
     }
 
@@ -620,6 +671,7 @@ public function store(Request $request)
     {
         $start = Carbon::parse($season->date_debut);    // تاريخ بداية الموسم
         $end = Carbon::parse($season->date_fin);// تاريخ نهاية الموسم
+        $today = Carbon::today();// تاريخ اليوم
         $unit = strtolower($plan->duration_unit ?? $plan->pricing_type ?? 'season');// وحدة التسعير
         $durationValue = max(1, (int) ($plan->duration_value ?? 1));// قيمة المدة
         $basePrice = (float) $plan->price;// السعر الأساسي للخطة
@@ -628,12 +680,155 @@ public function store(Request $request)
         $weeks = max(1, (int) ceil($days / 7));// حساب الأسابيع
         $months = max(1, (int) ceil($days / 30));// حساب الشهور
 
-        return match ($unit) { // تحديد السعر بناءً على وحدة التسعير
+        // حساب السعر التناسبي للشهر الأول إذا بدأ الاشتراك في منتصف الشهر
+        $proratedFirstMonth = $this->calculateProratedFirstMonth($today, $basePrice);
+        $hasProratedMonth = $proratedFirstMonth < $basePrice;
+
+        $totalPrice = match ($unit) { // تحديد السعر بناءً على وحدة التسعير
             'month', 'monthly' => $basePrice, // ceil($months / $durationValue) * $basePrice,// السعر مضروب في عدد الشهور مقسوم على قيمة المدة
             'week', 'weekly' => ceil($weeks / $durationValue) * $basePrice,// السعر مضروب في عدد الأسابيع مقسوم على قيمة المدة
             'session' => $weeks * min(1, $plan->sessions_per_week ?? $sessionsPerWeek) * $basePrice,// السعر مضروب في عدد الأسابيع وعدد الحصص في الأسبوع
             'ticket' => $basePrice,// سعر التذكرة ثابت
             default => $basePrice,// السعر الأساسي للخطة
+        };
+
+        // إذا كان النوع شهري وبدأ الاشتراك في منتصف الشهر، استخدم السعر التناسبي
+        if (in_array($unit, ['month', 'monthly']) && $hasProratedMonth) {
+            return $proratedFirstMonth;
+        }
+
+        return $totalPrice;
+    }
+
+    /**
+     * حساب السعر التناسبي للشهر الأول إذا بدأ الاشتراك بعد اليوم الأول من الشهر
+     * Calculate prorated price if subscription starts mid-month
+     */
+    private function calculateProratedFirstMonth(Carbon $startDate, float $monthlyPrice): float
+    {
+        $dayOfMonth = $startDate->day;// اليوم من الشهر (1-31)
+        
+        // إذا بدأ الاشتراك في اليوم الأول، لا حاجة للتقسيم التناسبي
+        if ($dayOfMonth === 1) {
+            return $monthlyPrice;
+        }
+
+        $daysInMonth = $startDate->daysInMonth;// عدد الأيام في الشهر الحالي
+        $remainingDays = $daysInMonth - $dayOfMonth + 1;// الأيام المتبقية في الشهر (بما فيها يوم البداية)
+        
+        // حساب السعر التناسبي بناءً على الأيام المتبقية
+        $proratedPrice = ($monthlyPrice / $daysInMonth) * $remainingDays;
+        
+        return round($proratedPrice, 2);// تقريب السعر لرقمين عشريين
+    }
+
+    /**
+     * التحقق من وجود تعارض في المواعيد مع حجوزات المستخدم الحالية
+     * Check if new schedule conflicts with user's existing reservations
+     * 
+     * @param int $userId
+     * @param Schedule $newSchedule
+     * @param Season $newSeason
+     * @return string|null رسالة التعارض أو null إذا لم يكن هناك تعارض
+     */
+    private function checkScheduleConflict(int $userId, Schedule $newSchedule, Season $newSeason): ?string
+    {
+        // جلب جميع الحجوزات النشطة للمستخدم
+        $existingReservations = Reservation::where('user_id', $userId)
+            ->whereIn('statut', ['en_attente', 'validé', 'confirmé'])
+            ->with('schedule')
+            ->get();
+
+        // فك تشفير الفترات الزمنية للجدول الجديد
+        $newSlots = $this->decodeScheduleSlots($newSchedule);
+        
+        // تحويل تاريخ بداية ونهاية الموسم الجديد
+        $newStart = Carbon::parse($newSeason->date_debut);
+        $newEnd = Carbon::parse($newSeason->date_fin);
+
+        foreach ($existingReservations as $reservation) {
+            // التحقق من تداخل الفترات الزمنية للموسم
+            $existingStart = Carbon::parse($reservation->start_date);
+            $existingEnd = Carbon::parse($reservation->end_date);
+
+            // إذا لم يكن هناك تداخل في التواريخ، تخطي هذا الحجز
+            if ($newEnd->lt($existingStart) || $newStart->gt($existingEnd)) {
+                continue;
+            }
+
+            // فك تشفير الفترات الزمنية للحجز الموجود
+            $existingSlots = is_array($reservation->time_slots) 
+                ? $reservation->time_slots 
+                : json_decode($reservation->time_slots, true) ?? [];
+
+            // التحقق من تعارض الأوقات في نفس اليوم
+            foreach ($newSlots as $newSlot) {
+                foreach ($existingSlots as $existingSlot) {
+                    // التحقق من نفس اليوم
+                    $newDay = $newSlot['day_number'] ?? null;
+                    $existingDay = $existingSlot['day_number'] ?? null;
+                    
+                    if ($newDay === null || $existingDay === null) {
+                        continue;
+                    }
+                    
+                    if ($newDay === $existingDay) {
+                        // الحصول على أوقات البداية والنهاية
+                        $newStart = $newSlot['start'] ?? $newSlot['start_time'] ?? null;
+                        $newEnd = $newSlot['end'] ?? $newSlot['end_time'] ?? null;
+                        $existingStart = $existingSlot['start'] ?? $existingSlot['start_time'] ?? null;
+                        $existingEnd = $existingSlot['end'] ?? $existingSlot['end_time'] ?? null;
+                        
+                        if (!$newStart || !$newEnd || !$existingStart || !$existingEnd) {
+                            continue;
+                        }
+                        
+                        // التحقق من تداخل الأوقات
+                        if ($this->timesOverlap($newStart, $newEnd, $existingStart, $existingEnd)) {
+                            $dayName = $this->getDayNameInArabic($newDay);
+                            $conflictSchedule = $reservation->schedule;
+                            return "يوم {$dayName} ({$newStart}-{$newEnd}) يتعارض مع حجزك في {$conflictSchedule->groupe}";
+                        }
+                    }
+                }
+            }
+        }
+
+        return null; // لا يوجد تعارض
+    }
+
+    /**
+     * التحقق من تداخل فترتين زمنيتين
+     * Check if two time ranges overlap
+     */
+    private function timesOverlap(string $start1, string $end1, string $start2, string $end2): bool
+    {
+        $s1 = strtotime($start1);
+        $e1 = strtotime($end1);
+        $s2 = strtotime($start2);
+        $e2 = strtotime($end2);
+
+        // التداخل يحدث إذا:
+        // بداية الفترة الأولى قبل نهاية الفترة الثانية
+        // ونهاية الفترة الأولى بعد بداية الفترة الثانية
+        return ($s1 < $e2) && ($e1 > $s2);
+    }
+
+    /**
+     * الحصول على اسم اليوم بالعربية من رقم اليوم
+     * Get Arabic day name from day number (0 = Sunday)
+     */
+    private function getDayNameInArabic(int $dayNumber): string
+    {
+        return match($dayNumber) {
+            0 => 'الأحد',
+            1 => 'الإثنين',
+            2 => 'الثلاثاء',
+            3 => 'الأربعاء',
+            4 => 'الخميس',
+            5 => 'الجمعة',
+            6 => 'السبت',
+            default => 'غير معروف'
         };
     }
 

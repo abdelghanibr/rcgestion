@@ -78,10 +78,11 @@
 
                 <div class="col-md-6 mb-3">
                     <label class="fw-bold">📅 الموسم</label>
-                    <select class="form-select" name="season_id" id="season_select" required>
-                        <option value="" disabled selected>اختر موسماً</option>
+                    <select class="form-select" name="season_id" id="season_select" required onchange="reloadWithSeason(this.value)">
+                        <option value="" disabled {{ !$selectedSeasonId ? 'selected' : '' }}>اختر موسماً أولاً</option>
                         @foreach($seasons as $season)
                             <option value="{{ $season->id }}"
+                                    {{ $selectedSeasonId == $season->id ? 'selected' : '' }}
                                     data-start="{{ $season->date_debut }}"
                                     data-end="{{ $season->date_fin }}">
                                 {{ $season->name }}
@@ -90,22 +91,39 @@
                     </select>
                 </div>
             </div>
+            
+            <script>
+                function reloadWithSeason(seasonId) {
+                    if (seasonId) {
+                        const currentUrl = new URL(window.location.href);
+                        currentUrl.searchParams.set('season_id', seasonId);
+                        window.location.href = currentUrl.toString();
+                    }
+                }
+            </script>
 
-            <div class="alert alert-info py-2 text-center fw-bold">
-                💰 سيتم احتساب السعر تلقائياً بعد اختيار الجدول الزمني المناسب.
-            </div>
+            @if(!$selectedSeasonId)
+                <div class="alert alert-warning py-2 text-center fw-bold">
+                    ⚠️ يرجى اختيار الموسم أولاً لعرض الجداول المتاحة.
+                </div>
+            @else
+                <div class="alert alert-info py-2 text-center fw-bold">
+                    💰 سيتم احتساب السعر تلقائياً بعد اختيار الجدول الزمني المناسب.
+                </div>
+            @endif
         </div>
 
         {{-- 📋 الجداول المتاحة --}}
-        <div class="card shadow-sm p-3 rounded-4 mb-4">
-            <h5 class="fw-bold text-secondary mb-3">📋 اختر الجدول الذي يناسبك</h5>
+        @if($selectedSeasonId)
+            <div class="card shadow-sm p-3 rounded-4 mb-4">
+                <h5 class="fw-bold text-secondary mb-3">📋 اختر الجدول الذي يناسبك</h5>
 
-            @if(!$hasSchedules)
-                <div class="alert alert-warning fw-bold text-center mb-0">
-                    🚧 لا توجد جداول زمنية مفعّلة لهذا النشاط حالياً.
-                </div>
-            @else
-                <div class="d-flex flex-column gap-3">
+                @if(!$hasSchedules)
+                    <div class="alert alert-warning fw-bold text-center mb-0">
+                        🚧 لا توجد جداول زمنية مفعّلة لهذا النشاط حالياً.
+                    </div>
+                @else
+                    <div class="d-flex flex-column gap-3">
                     @foreach($schedules as $schedule)
                         @php
                             $plan = $schedule->applied_plan;// جلب خطة التسعير المطبقة على الجدول
@@ -213,10 +231,10 @@
                     @endforeach
                 </div>
             @endif
-        </div>
+            </div>
 
-        {{-- 💸 خطة التسعير --}}
-        <div class="card shadow-sm p-3 rounded-4 mb-4" id="pricingCard" style="display:none;">
+            {{-- 💸 خطة التسعير --}}
+            <div class="card shadow-sm p-3 rounded-4 mb-4" id="pricingCard" style="display:none;">
             <h5 class="fw-bold text-dark mb-3">📌 تفاصيل خطة التسعير</h5>
 
             <table class="table table-bordered table-striped text-center mb-0">
@@ -243,21 +261,22 @@
                     </tr>
                 </tbody>
             </table>
-        </div>
+            </div>
 
-        {{-- 💵 السعر و التأكيد --}}
-        <div class="card shadow-sm p-4 rounded-4">
-            <label class="fw-bold">🔥 السعر الإجمالي (دج)</label>
-            <input type="text"
-                   id="total_price"
-                   class="form-control bg-light text-center fw-bold fs-5 mb-3"
-                   readonly>
-            <p class="text-muted small mb-3" id="price_hint"></p>
+            {{-- 💵 السعر و التأكيد --}}
+            <div class="card shadow-sm p-4 rounded-4">
+                <label class="fw-bold">🔥 السعر الإجمالي (دج)</label>
+                <input type="text"
+                       id="total_price"
+                       class="form-control bg-light text-center fw-bold fs-5 mb-3"
+                       readonly>
+                <p class="text-muted small mb-3" id="price_hint"></p>
 
-            <button class="btn btn-success w-100 fs-5 fw-bold" {{ $hasSchedules ? '' : 'disabled' }}>
-                ✔ تأكيد الحجز
-            </button>
-        </div>
+                <button class="btn btn-success w-100 fs-5 fw-bold" {{ ($hasSchedules && $selectedSeasonId) ? '' : 'disabled' }}>
+                    ✔ تأكيد الحجز
+                </button>
+            </div>
+        @endif
     </form>
 </div>
 @endsection
@@ -304,7 +323,7 @@
 
 </style>
 @endpush
-@push('scripts')
+@push('js')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -368,22 +387,70 @@ document.addEventListener('DOMContentLoaded', function () {
         return Math.max(1, months);
     };
 
+    /**
+     * حساب السعر التناسبي للشهر الأول إذا بدأ الاشتراك بعد اليوم الأول
+     * Calculate prorated price for first month if subscription starts mid-month
+     */
+    const calculateProratedFirstMonth = (monthlyPrice) => {
+        const today = new Date();
+        const dayOfMonth = today.getDate();
+        
+        // إذا بدأ الاشتراك في اليوم الأول، لا حاجة للتقسيم التناسبي
+        if (dayOfMonth === 1) {
+            return monthlyPrice;
+        }
+        
+        // حساب عدد الأيام في الشهر الحالي
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        // الأيام المتبقية في الشهر (بما فيها يوم البداية)
+        const remainingDays = daysInMonth - dayOfMonth + 1;
+        
+        // حساب السعر التناسبي
+        const proratedPrice = (monthlyPrice / daysInMonth) * remainingDays;
+        
+        return Math.round(proratedPrice * 100) / 100; // تقريب لرقمين عشريين
+    };
+
     /* ===============================
        MAIN HANDLER
     =============================== */
     const onSelectSchedule = (radio) => {
         highlight(radio);
 
-        const typePrix = radio.dataset.typePrix; // fix | pricing_plan
+        const typePrix = radio.dataset.typePrix; // fixed | pricing_plan
         const basePrice = parseFloat(radio.dataset.price || 0);
+
+        console.log('onSelectSchedule called:', {
+            typePrix,
+            basePrice,
+            totalPriceElement: totalPrice,
+            priceHintElement: priceHint
+        });
 
         /* ===============================
            ✅ FIX PRICE (الحل النهائي)
         =============================== */
-        if (typePrix === 'fix') {
+        if (typePrix !== 'pricing_plan') {
             resetPlanCard(); // ❌ لا خطة
-            totalPrice.value = formatPrice(basePrice);
-            priceHint.textContent = '💵 سعر ثابت حسب الجدول (غير مرتبط بالموسم)';
+            
+            // تطبيق التقسيم التناسبي للشهر الأول
+            const proratedPrice = calculateProratedFirstMonth(basePrice);
+            
+            totalPrice.value = formatPrice(proratedPrice);
+            
+            if (proratedPrice < basePrice) {
+                const today = new Date();
+                const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+                const remainingDays = daysInMonth - today.getDate() + 1;
+                priceHint.textContent = `💵 سعر تناسبي: ${remainingDays} يوم من ${daysInMonth} يوم في الشهر الحالي`;
+            } else {
+                priceHint.textContent = '💵 سعر ثابت حسب الجدول';
+            }
+            
+            console.log('Fixed price set:', totalPrice.value);
             return;
         }
 
@@ -409,7 +476,8 @@ document.addEventListener('DOMContentLoaded', function () {
         switch (durationUnit) {
             case 'month':
             case 'monthly':
-                computed = Math.ceil(months / durationValue) * basePrice;
+                // تطبيق التقسيم التناسبي للشهر الأول
+                computed = calculateProratedFirstMonth(basePrice);
                 break;
 
             case 'week':
@@ -432,7 +500,16 @@ document.addEventListener('DOMContentLoaded', function () {
         planPrice.textContent = formatPrice(computed);
 
         totalPrice.value = formatPrice(computed);
-        priceHint.textContent = '📅 السعر محسوب حسب خطة التسعير والموسم';
+        
+        // عرض رسالة توضيحية للسعر التناسبي
+        if ((durationUnit === 'month' || durationUnit === 'monthly') && computed < basePrice) {
+            const today = new Date();
+            const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+            const remainingDays = daysInMonth - today.getDate() + 1;
+            priceHint.textContent = `📅 سعر تناسبي للشهر الأول: ${remainingDays} يوم من ${daysInMonth} يوم`;
+        } else {
+            priceHint.textContent = '📅 السعر محسوب حسب خطة التسعير والموسم';
+        }
     };
 
     /* ===============================
@@ -449,6 +526,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 onSelectSchedule(selected);
             }
         });
+    }
+
+    /* ===============================
+       AUTO-SELECT FIRST SCHEDULE
+    =============================== */
+    console.log('Auto-selection check:', {
+        radiosCount: radios.length,
+        seasonSelectExists: !!seasonSelect,
+        seasonValue: seasonSelect?.value
+    });
+    
+    const firstRadio = Array.from(radios).find(r => !r.disabled);
+    console.log('First enabled radio:', firstRadio);
+    
+    if (firstRadio && seasonSelect && seasonSelect.value) {
+        console.log('Auto-selecting first schedule...');
+        firstRadio.checked = true;
+        onSelectSchedule(firstRadio);
     }
 
 });
